@@ -1,0 +1,10 @@
+# Original game files live in ../Pandoras_Box_Original: never commit or ship them.
+/extracted/
+/notes/previews/
+
+venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+/build/
+/dist/
