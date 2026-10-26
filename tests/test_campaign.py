@@ -329,3 +329,18 @@ def test_story_book(app):
     assert book.page == 3
     ev(app, pygame.KEYDOWN, key=pygame.K_ESCAPE, unicode="", mod=0)
     assert app.view.id == 400
+
+
+def test_trickster_icons_on_the_map(app):
+    new_player(app)
+    app.player_ready()
+    app.player.level, app.player.captured = 3, [1, 2]
+    app.show_map()
+    icons = app.view.scene.tricksters
+    assert [state for _, state, *_ in icons] == ["captured", "captured", "current"] + ["hidden"] * 4
+    assert icons[0][0].topleft == (7, 63) and icons[6][0].topleft == (7 + 73 * 6, 63)
+    assert all(img is not None for _, _, img, _ in icons)
+    click_at(app, icons[0][0].center)                  # a captured trickster: nothing to open
+    assert app.view.id == 400
+    click_at(app, icons[2][0].center)                  # the current one: the Challenge box
+    assert app.view.id == 1800

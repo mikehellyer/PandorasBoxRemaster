@@ -286,3 +286,12 @@ opens at the level's start (page 1) and after each found piece (the next page), 
 pages limited to those unlocked, and the book on the map and city screens (not the main menu).
 The remaster used to play voice-over n after the nth piece, one page behind; fixed.
 
+### Trickster portraits on the world map
+The map setup (0x41f180) puts seven 64x64 portraits in the dark strip across the top of 400.RIM, from a
+static table at 0x5ba798 (0x24 bytes per trickster: images 44xU, 44xD, the shared 440UA mask, and a
+rect; left 7 + 73k, top 63). Levels before the current one show 44xS (gold frame: captured); the
+current trickster is a button (44xU / 44xD, the 68x68 440UA alpha mask giving its frame shadow) that
+opens the Challenge box (STATENU 1720 "Click the box to see your progress."); later ones show 447.RIM,
+an empty frame. Names LANGENU 430-436. **Interpretation:** the hover caption, and the remaster's
+"Level n - Capture X" title moved beside WORLD MAP so the row is clear.
+

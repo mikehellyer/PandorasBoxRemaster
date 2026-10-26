@@ -16,7 +16,8 @@ game rules come from disassembling the unprotected `PANDORA.EUL`. Mike reviews e
      messages, Challenge box, capture and next level, Credits/About on their real frames, music per
      PANDORA.MGD, saves per player (JSON). Puzzles show their picture and can be finished with a Free
      Puzzle token or F9 until each type is written. Since done: Load/Save, Gallery, Puzzles Only play
-     (Scalawag is bonus puzzles, not a level), tutorial instructions, speed-puzzle bonuses, Story book. Not yet: the trickster icons on the map.
+     (Scalawag is bonus puzzles, not a level), tutorial instructions, speed-puzzle bonuses, Story book, trickster portraits on the map: everything from the
+     original is now in (some details interpreted, see game-logic.md).
    - M2 puzzle types: Focus Point ✅ (71), Rotascope ✅ (55), Image Hole ✅ (42), Jesse's Strips ✅ (43), Overlap ✅ (63), Interlock ✅ (12), Find and Fill ✅ (45), Slices ✅ (29), Lens Bender ✅ (22), Outer Layer ✅ (29): all ten types playable
    - M2 (was) one puzzle type end to end (Slices or Lens Bender: the most data is already readable), then the other nine.
    - M3 the world map, cities, rewards (piece / hint / wildcard / timed), tricksters, save games, best times.

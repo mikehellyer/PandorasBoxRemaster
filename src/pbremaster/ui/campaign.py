@@ -177,6 +177,50 @@ class MapScene(Scene):
             else:
                 continue
             self.markers.append(Marker(city, pos))
+        self.tricksters = self.trickster_icons()
+        self.pressed = None
+        self.challenge_rect = None                      # set while drawing, once all five are found
+
+    def trickster_icons(self):
+        """The row of trickster portraits across the top of the map (built at 0x41f180 from the
+        table at 0x5ba798: 64x64 at (7 + 73k, 63)): captured ones in gold (44xS), the current
+        one as a button (44xU / 44xD with the 440UA shadow mask, opening the Challenge box),
+        the ones still to come as empty frames (447)."""
+        p = self.app.player
+        icons = []
+        for k in range(len(world.TRICKSTERS)):
+            level = k + 1
+            rect = pygame.Rect(7 + 73 * k, 63, 64, 64)
+            if level < p.level or level in p.captured:
+                icons.append((rect, "captured", self.img(f"{440 + k}s.bmp", key=False), None))
+            elif level == p.level and not p.finished:
+                up, down = (self.with_mask(f"{440 + k}{v}") for v in ("u", "d"))
+                icons.append((rect, "current", up, down))
+            else:
+                icons.append((rect, "hidden", self.img("447.bmp", key=False), None))
+        return icons
+
+    def with_mask(self, stem):
+        """A portrait with the shared 440UA mask (its frame and soft shadow) as alpha."""
+        img = self.img(f"{stem}.bmp", key=False)
+        if img is None:
+            return None
+        try:
+            from ..data import deft
+            import numpy as np
+            mask = deft.decode_rim(self.app.assets.raw("SCREENS/440UA.RIM"))
+            h, w = mask.shape
+            out = pygame.Surface((w, h), pygame.SRCALPHA)
+            out.blit(img, (0, 0))
+            alpha = pygame.surfarray.pixels_alpha(out)
+            alpha[:] = mask.T
+            del alpha
+            return out
+        except (KeyError, ValueError):
+            return img
+
+    def trickster_at(self, pos):
+        return next((i for i, (r, *_) in enumerate(self.tricksters) if r.collidepoint(pos)), None)
 
     def enter(self):
         self.app.music.play_loop("MUSIC/MAP.WAV")
@@ -191,7 +235,13 @@ class MapScene(Scene):
     def draw_front(self, surf):
         p, s = self.app.player, self.app.strings
         level_text = s.get(440 + p.level, "")
-        shadow_text(surf, self.title_font, level_text, (10, 50))
+        shadow_text(surf, self.title_font, level_text, (196, 32))     # beside WORLD MAP
+        mouse = self.app.mouse_pos()
+        for i, (rect, state, img, down) in enumerate(self.tricksters):
+            if state == "current" and down is not None and self.pressed == i and rect.collidepoint(mouse):
+                img = down
+            if img is not None:
+                surf.blit(img, rect)
         for i, sid in enumerate((450, 451, 452)):
             surf.blit(self.font.render(s.get(sid, "").strip(), True, DARK), (510, 456 + i * 24))
         if len(p.level_pieces(self.app.levels[p.level].path)) >= 5:
@@ -207,6 +257,12 @@ class MapScene(Scene):
             frames = self.star if m.city.path in p.pieces else self.found
             if frames:
                 surf.blit(frames[2 if m.hover else 0], m.rect)
+        hover = self.trickster_at(mouse)
+        if hover is not None and self.tricksters[hover][1] != "hidden":
+            state = self.tricksters[hover][1]
+            lines = [self.app.strings.get(430 + hover, world.TRICKSTERS[hover]),
+                     "Captured" if state == "captured" else self.app.status.get(1720, "").strip()]
+            self.caption(surf, lines, self.tricksters[hover][0])
         for m in self.markers:
             if m.hover:
                 st = {"current": 450, "not found": 451, "found": 452}[self.state(m)]
@@ -221,6 +277,24 @@ class MapScene(Scene):
                     img = self.font.render(line, True, TEXT)
                     surf.blit(img, (box.centerx - img.get_width() // 2, box.y + 3 + 18 * i))
 
+    def caption(self, surf, lines, under):
+        w = max(self.font.size(t)[0] for t in lines) + 12
+        box = pygame.Rect(0, 0, w, 18 * len(lines) + 6)
+        box.midtop = (under.centerx, under.bottom + 4)
+        box.clamp_ip(surf.get_rect())
+        pygame.draw.rect(surf, (40, 18, 6), box)
+        pygame.draw.rect(surf, TEXT, box, 1)
+        for i, line in enumerate(lines):
+            img = self.font.render(line, True, TEXT)
+            surf.blit(img, (box.centerx - img.get_width() // 2, box.y + 3 + 18 * i))
+
+    def mouse_down(self, pos):
+        i = self.trickster_at(pos)
+        if i is not None and self.tricksters[i][1] == "current":
+            self.pressed = i
+            return True
+        return False
+
     def mouse_move(self, pos):
         for m in self.markers:
             inside = m.rect.inflate(8, 8).collidepoint(pos)
@@ -230,6 +304,12 @@ class MapScene(Scene):
         return False
 
     def mouse_up(self, pos):
+        pressed, self.pressed = self.pressed, None
+        if pressed is not None:
+            if self.trickster_at(pos) == pressed:
+                self.app.sounds.play(self.app.sounds.CLICK)
+                self.app.open_challenge()          # "Click the box to see your progress."
+            return True
         for m in self.markers:
             if m.rect.inflate(8, 8).collidepoint(pos):
                 self.app.sounds.play("DOORCITY")
