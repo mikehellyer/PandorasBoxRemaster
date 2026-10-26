@@ -1,7 +1,7 @@
 """Jesse's Strips (PUZZLE.JES, CJesseStripsObject / CTStrip / CTray).
 
 "Use storage trays to help organize pieces in this version of a jigsaw puzzle.
-Select a piece (SHIFT for several), drag it; drag it onto a numbered tab to move
+Select a piece (SHIFT, or drag the pointer over several, for more), drag it; drag it onto a numbered tab to move
 it to that tray; right-click (or the button) rotates; click a tab or press 1-5
 to switch trays." (HELP/PANDORA.M20, tutorial LANGENU 8007-8015)
 
@@ -83,6 +83,7 @@ class JessesStrips(PuzzleGame):
         self.selected: list[Piece] = []
         self.drag = None            # (grab cell offset per piece, mouse start cell)
         self.tab_hover = None
+        self.band = None            # drag-select: (start, current, shift held)
         self.hint_mode = False
         self.check()
 
@@ -133,12 +134,10 @@ class JessesStrips(PuzzleGame):
                 self.place(p)
                 self.hint_done = True
             return True
+        shift = bool(pygame.key.get_mods() & pygame.KMOD_SHIFT)
         if p is None:
-            if self.selected:
-                self.selected = []
-                self.sound("JS_DESEL")
+            self.band = (pos, pos, shift)          # select by dragging over pieces
             return True
-        shift = pygame.key.get_mods() & pygame.KMOD_SHIFT
         if shift:
             if p in self.selected:
                 self.selected.remove(p)
@@ -153,6 +152,9 @@ class JessesStrips(PuzzleGame):
 
     def mouse_move(self, pos):
         super().mouse_move(pos)
+        if self.band:
+            self.band = (self.band[0], pos, self.band[2])
+            return
         if not self.drag:
             return
         mx, my = self.cell_at(pos)
@@ -163,7 +165,27 @@ class JessesStrips(PuzzleGame):
         if over != (self.tab_hover[0] if self.tab_hover else None):
             self.tab_hover = (over, 0.0) if over is not None and over != self.tray else None
 
+    def band_rect(self):
+        (x0, y0), (x1, y1), _ = self.band
+        return pygame.Rect(min(x0, x1), min(y0, y1), abs(x1 - x0) + 1, abs(y1 - y0) + 1)
+
+    def piece_rect(self, p):
+        c = self.data.cell
+        x, y, w, h = p.footprint()
+        return pygame.Rect(self.origin[0] + x * c, self.origin[1] + y * c, w * c, h * c)
+
     def mouse_up(self, pos):
+        if self.band:
+            rect, shift = self.band_rect(), self.band[2]
+            self.band = None
+            caught = [p for p in self.loose() if rect.colliderect(self.piece_rect(p))] if rect.w * rect.h > 9 else []
+            before = list(self.selected)
+            self.selected = (before if shift else []) + [p for p in caught if not (shift and p in before)]
+            if self.selected and self.selected != before:
+                self.sound("JS_SEL")
+            elif before and not self.selected:
+                self.sound("JS_DESEL")
+            return True
         if super().mouse_up(pos):
             return True
         if not self.drag:
@@ -283,11 +305,12 @@ class JessesStrips(PuzzleGame):
         if not self.solved:
             pygame.draw.rect(surf, (60, 25, 5), board, 1)
         for p in self.loose():
-            x, y, w, h = p.footprint()
-            r = pygame.Rect(ox + x * c, oy + y * c, w * c, h * c)
+            r = self.piece_rect(p)
             surf.blit(self.strip_image(p), r)
             colour = (255, 236, 160) if p in self.selected else (40, 15, 0)
             pygame.draw.rect(surf, colour, r, 2 if p in self.selected else 1)
+        if self.band:
+            pygame.draw.rect(surf, (255, 236, 160), self.band_rect(), 1)
         if self.hint_mode:
             text = self.app.strings.get(8006, "").replace("\r", " ")
             img = self.app.fonts.get(16).render(text, True, (248, 176, 100))

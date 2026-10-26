@@ -71,3 +71,34 @@ def test_trays_and_hint(app):
     assert p.placed and g.hint_done
     g.complete()
     assert g.solved
+
+
+def test_drag_select_box(app):
+    from pbremaster.puzzles.jesse import TRAY, JessesStrips
+
+    g = next(g for g in (JessesStrips(app, p) for p in jesse(app)) if len(g.loose()) >= 2)
+    loose = g.loose()
+    assert len(loose) >= 2
+    a, b = loose[0], loose[1]
+    box = g.piece_rect(a).union(g.piece_rect(b))
+    start = next((x, y) for x in range(TRAY.x + 4, TRAY.right - 4, 3) for y in range(TRAY.y + 4, TRAY.bottom - 4, 3)
+                 if g.piece_at((x, y)) is None)
+    # drag a box from an empty spot over both strips
+    g.mouse_down(start)
+    end = (box.right if start[0] <= box.x else box.x, box.bottom if start[1] <= box.y else box.y)
+    g.mouse_move(end)
+    rect = g.band_rect()
+    g.mouse_up(end)
+    caught = {p.n for p in loose if rect.colliderect(g.piece_rect(p))}
+    assert {p.n for p in g.selected} == caught and len(caught) >= 2
+    # dragging one selected strip moves the whole selection
+    cells = {p.n: p.cell for p in g.selected}
+    grab = g.piece_rect(g.selected[0]).center
+    g.mouse_down(grab)
+    g.mouse_move((grab[0] + g.data.cell, grab[1]))
+    assert all(p.cell == (cells[p.n][0] + 1, cells[p.n][1]) for p in g.selected)
+    g.drag = None
+    # a click on empty tray clears it
+    g.mouse_down(start)
+    g.mouse_up(start)
+    assert g.selected == []
