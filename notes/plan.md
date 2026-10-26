@@ -7,7 +7,10 @@ game rules come from disassembling the unprotected `PANDORA.EUL`. Mike reviews e
 2. **Extraction** ✅: `pb-extract` unpacks both archives, decodes RIM images, string tables, campaign catalogue.
 3. **Engine** (pygame-ce, 800x600 canvas scaled to the window):
    - M0 ✅ window, splash, main menu backdrop from the original files.
-   - M1 SCREEN.DAT layouts: working menus, buttons with hover/press states, sounds, Book Antiqua text.
+   - M1 ✅ SCREEN.DAT layouts: every screen drawn, buttons with hover/press/toggle/radio states, captions,
+     sounds, Book Antiqua text, the game cursor, Menu pop-up, Options (saved to settings.json), player
+     names, Puzzles Only type picker + picture list, Credits/About text. Still to do on the menus: the
+     Load/Save dialogs (need save games), quick help (the RTFs are not on the CD), and the PLAY flow.
    - M2 one puzzle type end to end (Slices or Lens Bender: the most data is already readable), then the other nine.
    - M3 the world map, cities, rewards (piece / hint / wildcard / timed), tricksters, save games, best times.
    - M4 videos (intro + story AVIs via PyAV), music, gallery, puzzles-only mode, tutorial.

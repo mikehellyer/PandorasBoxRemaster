@@ -23,11 +23,15 @@ class Assets:
     def raw(self, name: str) -> bytes:
         return self._rof_for(name).read(name)
 
-    def image(self, name: str) -> pygame.Surface:
-        """An image from an archive: .RIM (with its 'A' mask if present), .PNG, .JPG, .BMP."""
+    def image(self, name: str, colorkey=False) -> pygame.Surface:
+        """An image from an archive: .RIM (with its 'A' mask if present), .PNG, .JPG, .BMP.
+
+        colorkey: treat pure blue (RGB555 0x001F) as transparent, as the game does
+        for control images that have no mask.
+        """
         key = name.upper()
-        if key in self._cache:
-            return self._cache[key]
+        if (key, colorkey) in self._cache:
+            return self._cache[key, colorkey]
         rof = self._rof_for(key)
         if key.endswith(".RIM"):
             rgb = deft.decode_rim(rof.read(key))
@@ -38,10 +42,15 @@ class Assets:
                 surf = pygame.image.frombuffer(rgba.tobytes(), rgba.shape[1::-1], "RGBA").copy()
             else:
                 surf = pygame.image.frombuffer(rgb.tobytes(), rgb.shape[1::-1], "RGB").copy()
+                if colorkey:
+                    surf.set_colorkey((0, 0, 255))
         else:
             surf = pygame.image.load(io.BytesIO(rof.read(key)), key)
-        self._cache[key] = surf
+        self._cache[key, colorkey] = surf
         return surf
+
+    def has(self, name: str) -> bool:
+        return name.upper() in self._rof_for(name)
 
     def loose_image(self, *parts: str) -> pygame.Surface:
         """An image stored as a plain file in the DATA folder (SPLASH.PNG, LOADBAR.PNG)."""

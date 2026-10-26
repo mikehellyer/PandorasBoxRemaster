@@ -53,6 +53,13 @@ class Puzzle:
     hint: bool = False
     wildcard: bool = False
     time_limit: int | None = None
+    level: int = 0
+    city_id: int = 0             # 0 for level-wide puzzles
+
+    @property
+    def name_id(self) -> int:
+        """String id of the picture's name (NAMEENU) and credits (PUZENU)."""
+        return self.level * 1000 + self.city_id * 20 + self.number
 
     @property
     def kind_name(self):
@@ -99,6 +106,7 @@ def load(rof: ROF) -> dict[int, Level]:
         if pm := _PUZ.match(rest[0]):
             n = int(pm.group(1))
             pz = owner.puzzles.setdefault(n, Puzzle("", n, ""))
+            pz.level, pz.city_id = lv.number, getattr(owner, "id", 0)
             pz.path = "/".join(parts[:len(parts) - len(rest) + 1])
             pz.kind = pm.group(2)
             pz.files.append(path)
@@ -107,6 +115,7 @@ def load(rof: ROF) -> dict[int, Level]:
         if len(rest) == 1 and marker[0] in ("PIECE", "HINT", "WILDCARD", "TIME") and marker[1].isdigit():
             n = int(marker[1])
             pz = owner.puzzles.setdefault(n, Puzzle("", n, ""))
+            pz.level, pz.city_id = lv.number, getattr(owner, "id", 0)
             if marker[0] == "TIME":
                 pz.time_limit = int(marker[2])
             else:

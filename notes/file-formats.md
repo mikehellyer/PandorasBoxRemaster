@@ -95,13 +95,41 @@ Official names from LANGENU.DLL 150-161. "Help file" is the quick-help RTF named
 
 Other help RTFs in SCREEN.DAT: `hiseler.rtf`, `sheet.rtf` (two more types that were cut?).
 
-## 🟡 SCREENS/SCREEN.DAT: UI layout
+## ✅ SCREENS/SCREEN.DAT: UI layout
 
-Loaded by `0x4fb7f0` in PANDORA.EUL. `u32 screen_count (39)`, then screen records (each read by a virtual
-`Load`, background like `100.bmp` = `100.RIM`, quick-help RTF, list of control IDs); then `u32 control_count`
-and control records; each starts with `u32 type` (1-6, jump table at `0x4fbe24`) that picks the control class.
-Button images are named by control ID (`103u.bmp` -> `SCREENS/103U.RIM`). Control IDs match LANGENU string
-IDs (101 PLAY, 102 TUTORIAL, 103 GALLERY ...). Next step: decode the six control `Load` methods.
+`src/pbremaster/data/screens.py`. Loader `0x4fb7f0`; screen `Load` `0x4fb590`; control loads via each
+class's vtable slot 4 (base `0x507240`). All little-endian; parses to the last byte (39 screens, 332 controls).
+
+```
+u32 screen_count
+Screen:  u32 id, char background[32], char help_rtf[28], u32 n, u32 control_id[n]
+u32 control_count
+Control: u32 kind, u32 id, i32 left, top, right, bottom, then by kind:
+  1 Button  (244 bytes) +0 label string id | +8,+36,+64,+92 image names (28 bytes each: up, down,
+            up-hover, down-hover; one name = a strip of the 4 states side by side) | +120 5th name (unused)
+            | +148 12 x u32 radio group ids | +208 action | +212 argument | +240 style
+  2 Picture (32)  image name[28], 4 unused
+  3 Label   (48)  string id, font size (px), align (0 left, 1 right, 2 centre), ?, COLORREF, font name[28]
+  4 Region  (8)   x, y: hot spots with a status-bar tip, content drawn by code
+  5 List    (44)  image name[28], inner rect (4 x i32)
+  6 Edit    (44)  same as List
+```
+- Background/image names say `.bmp` but are `SCREENS/<NAME>.RIM`. Images without an `A` mask use pure
+  blue (RGB555 `0x001F`) as a colour key.
+- right/bottom 0: a button takes its size from the image (a quarter of a strip); a label measures its text
+  and treats (left, top) as top-left / bottom-right / centre for align 0 / 1 / 2.
+- Button **style**: 1 push, 2 toggle (checked = down frame), 3 radio (the 12 group ids).
+- Button **action** (jump table `0x500838`): 1 close screen, 2 quick help, 3 show screen `arg`,
+  10 run the command registered for `arg` (map `0x5d4100`, see game-logic.md), 12 quit,
+  14 notify the screen, 15 end the dialog with result `arg` (1 OK, 2 Cancel, 6 Yes, 7 No).
+- Screens with no background (10, 40, 250, 900-903, 1200, 1204) are message boxes drawn by code.
+  `credits1.png`, `about1.png`, `introdlg.png` and the quick-help `.rtf` files are not on the CD.
+- Help RTFs for `Chiseler.rtf` (7000) and `sheet.rtf` (9000) belong to two puzzle types that were cut.
+
+## ✅ Cursors (PANDORA.EUL resources)
+
+`src/pbremaster/data/cursors.py`. 39 RT_CURSOR / 33 RT_GROUP_CURSOR; the normal pointer is group 109
+(`LoadCursorA(0x6d)` at `0x4f8b10`).
 
 ## ✅ String tables: LANGENU / PUZENU / NAMEENU / STATENU .DLL
 
@@ -110,7 +138,8 @@ Resource-only DLLs, read with `src/pbremaster/data/strings.py`.
 - PUZENU: credits for each puzzle's artwork, `%nTitle %aArtist %tTime %rRights` format, ids like 1121.
 - NAMEENU: short picture names, "Level 1: ..." (same ids as PUZENU).
 - STATENU: status-bar tooltips.
-The puzzle id scheme (1121 = level 1, ...) is not decoded yet. 🟡
+Picture ids: `level*1000 + city_id*20 + puzzle` (Cairo is city 6: 1121-1130). All 390 city puzzles have
+a name; tutorial and level (master) puzzles do not. ✅
 
 ## 🟡 Other files
 
@@ -121,6 +150,7 @@ The puzzle id scheme (1121 = level 1, ...) is not decoded yet. 🟡
 | `CREDITS.DAT` | Plain text, `%B` toggles bold. ✅ |
 | `TRICKS.RTR` + `TRICKS.BMP` | defT; payload starts 0x1d6 x 0x145 (470x325). Probably a ray-trace lookup table for the "tricks" (trickster) screen. ❓ |
 | `BKANT.TTF` | Book Antiqua, the UI font (LANGENU 31). ✅ |
+| `SCREENS/*.WAV` (folder `DATA/SCREENS`) | UI sounds: MO (mouse over), CLICK, ALERT, NOCLICK, HELP, BACK ... ✅ |
 | `*.AVI` | `OPEN.AVI` (intro) and `INT01-07.AVI` (story per level). Video **Indeo 5 (IV50)**, PCM audio. PyAV's bundled FFmpeg decodes IV50. |
 | `*.WAV` | Standard PCM. `MUSIC/` holds 22 kHz mono tracks per region (AFRICA, ASIA, ...) and `_P` variants. |
 | `HELP/*.M20` | WinHelp (.HLP) files. |

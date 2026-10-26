@@ -3,6 +3,7 @@
     python tools/re/pe.py ORIG/DATA/PANDORA.EUL dis 0x401000 [count]
     python tools/re/pe.py ORIG/DATA/PANDORA.EUL xref-str "some text"
     python tools/re/pe.py ORIG/DATA/PANDORA.EUL imports
+    python tools/re/pe.py ORIG/DATA/PANDORA.EUL asm extracted/re/pandora.asm   (whole .text, for grep)
 """
 import struct
 import sys
@@ -85,6 +86,22 @@ def main():
             print(f"string @ {s:08x}:", ", ".join(f"{x:08x}" for x in img.xrefs(s)))
     elif cmd == "xref":
         print(", ".join(f"{x:08x}" for x in img.xrefs(int(sys.argv[3], 16))))
+    elif cmd == "asm":
+        dump_asm(img, sys.argv[3])
+
+
+def dump_asm(img, out_path):
+    """Linear sweep of .text; skips a byte whenever capstone stops on data."""
+    start, size = img.text()
+    off = start - img.base
+    with open(out_path, "w") as f:
+        pos = 0
+        while pos < size:
+            end = pos
+            for ins in img.md.disasm(img.mem[off + pos:off + size], start + pos):
+                f.write(f"{ins.address:08x}  {ins.mnemonic:6} {ins.op_str}{img.note(ins)}\n")
+                end = ins.address + ins.size - start
+            pos = max(end, pos + 1)
 
 
 if __name__ == "__main__":
