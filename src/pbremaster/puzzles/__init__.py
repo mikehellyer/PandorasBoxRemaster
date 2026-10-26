@@ -5,6 +5,7 @@ from __future__ import annotations
 
 
 def game_for(kind_name):
+    from .findfill import FindAndFill
     from .focuspoint import FocusPoint
     from .imagehole import ImageHole
     from .interlock import Interlock
@@ -13,4 +14,4 @@ def game_for(kind_name):
     from .rotascope import Rotascope
     return {"Focus Point": FocusPoint, "Rotascope": Rotascope, "Image Hole": ImageHole,
             "Jesse's Strips": JessesStrips, "Overlap": Overlap,
-            "Interlock": Interlock}.get(kind_name)
+            "Interlock": Interlock, "Find and Fill": FindAndFill}.get(kind_name)

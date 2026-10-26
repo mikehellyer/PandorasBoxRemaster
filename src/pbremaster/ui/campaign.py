@@ -484,6 +484,10 @@ class PuzzleScene(Scene):
         if self.game and not self.busy():
             self.game.right_click(pos)
 
+    def wheel(self, dy):
+        if self.game and not self.busy():
+            self.game.wheel(dy)
+
     def key(self, ev):
         if self.game and not self.busy() and self.game.key(ev):
             return True

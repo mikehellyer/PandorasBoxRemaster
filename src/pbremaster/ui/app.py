@@ -511,6 +511,11 @@ class App:
         if ev.type == pygame.KEYDOWN:
             self.key(ev)
             return
+        if ev.type == pygame.MOUSEWHEEL:
+            scene = self.active().scene
+            if scene and hasattr(scene, "wheel"):
+                scene.wheel(ev.y)
+            return
         if ev.type not in (pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP):
             return
         pos = self.to_canvas(ev.pos)

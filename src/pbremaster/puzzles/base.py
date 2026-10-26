@@ -89,6 +89,9 @@ class PuzzleGame:
     def right_click(self, pos):
         pass
 
+    def wheel(self, dy):
+        pass
+
     def key(self, ev) -> bool:
         return False
 

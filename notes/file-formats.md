@@ -91,7 +91,7 @@ Official names from LANGENU.DLL 150-161. "Help file" is the quick-help RTF named
 | Slices | SLC, SLICE | `STATE.TXT` (text: per object `x y flip rot` + name), `OBJECT.WRL` (VRML 1.0), `nOBJ_m.PNG` + masks | 🟡 | 3dslices.rtf | SLICE/ |
 | Lens Bender | BGL | `PUZZLE.BGL` (INI `[BumpyGlass]`) + `PUZZLE_SPRn.PNG` + `TILE.PNG`; lens shapes in `BGL/<DIFF>_LENSn.RTRT/.RTRS` (precomputed ray-trace tables), layouts in `BGL/<DIFF>.INI` | 🟡 | bumpy.rtf | BGL/ |
 | Interlock ✅ | TRI, TAN | `PUZZLE.TRI` | see below | rigram.rtf | TRIGRAMS/ |
-| Find and Fill | FNF, F&F | `PUZZLE.FNF` + photo .JPG; board `FNF/301.RIM` | `'fnf_'` u32 1, u32 1, ... (large: ~800 KB) ❓ | findfill.rtf | FNF/ |
+| Find and Fill ✅ | FNF, F&F | `PUZZLE.FNF` + photo .JPG; left column `FNF/301.RIM` | see below | findfill.rtf | FNF/ |
 
 Other help RTFs in SCREEN.DAT: `hiseler.rtf`, `sheet.rtf` (two more types that were cut?).
 
@@ -250,3 +250,28 @@ Equilateral triangle grid (0x511170): column step size/2, row height size*sqrt(3
 (x, y) points down when x + y is even. Pieces: table at `0x5b440c`, (type*6 + rotation)*2 + flip ->
 u8 w, u8 h, u8 first-points-down, w*h cells; dumped to `src/pbremaster/data/iamonds.py` by
 `tools/re/dump_iamonds.py` (shapes of 5,4,5,5,4,5,4 triangles = 32).
+
+## ✅ PUZZLE.FNF (Find and Fill)
+
+`src/pbremaster/data/fnf.py`; loader `0x499eb0` (CFindNFillObject). Checked on all 45 files.
+```
+'fnf_', u32 1, u32 pictures, u32 first strip width, u32 121, u32 16
+per picture:
+    image   strip 121 high: the reference picture (140 px cell, magenta border), then one 140 px
+            cell per object with its black silhouette
+    u32     objects
+    objects x { image (the object as cut from the picture, magenta 0x7C1F = transparent),
+                u32 1, COLORREF, f64 angle (degrees), f64 -height/2, RECT in the source picture,
+                i32, i32, outline chain codes / scanline records (no length), u32 n + name[n] }
+u32 n + source path[n] ... (last one ends ".bmp")
+f64 angle (radians), u32 layout (0, 1 = square pile; 2 = wide strip), u32 size, u32 W, u32 H
+u16 board[H][W]       cell bit 4+k = object k covers it; bit 3 on some cells (unknown)
+image = u32 w, u32 h, u32 bpp (16), RGB555 rows padded to 4 bytes
+```
+Later strips are found by their `w, 121, 16` header, objects by an image header followed by u32 1
+and a RECT the image's size, the board by the first `.bmp` string followed by a plausible header.
+Boards: 500x500 (11), 400x400, 350x350, 250x250 ... and strips up to 1256x430. Four files carry
+stale bytes after the board (an older, larger save written over in place; Moscow 4: a 330x330 board,
+then the tail of a 400x400 one). On the board each object is turned and scaled (area ratios 1 to 15);
+neither per-object double predicts the turn, so the game fits it (see game-logic.md).
+

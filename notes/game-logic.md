@@ -155,3 +155,21 @@ steps and flip; a piece sticks when it covers exactly its solution triangles. Th
 in the play area with the solution triangles blacked out (on Amsterdam 8 they cut out the lute player,
 which supports this reading); unplaced pieces use the file's colour.
 **Interpretation:** grid origin at the play area's corner, button positions.
+
+### Find and Fill ✅ (CFindNFillObject, `src/pbremaster/puzzles/findfill.py`)
+Texts LANGENU 13126-13132 (13128: "fill it with a single color. Make sure you don't fill any extra
+spaces!"; 13129: two images at once with different colours; 13130: images may be rotated or upside
+down), solved 13118, scroll tips STATENU 13133/13134. The board is the file's cell grid: lines are the
+boundaries between cells covered by different sets of objects (2 px, so areas never touch
+diagonally) and the areas between them are filled by clicking with the selected colour (FNF/BLUE,
+YLLW, RED, GRN textures from FNF/PATTERNS.PNG rows 0-3; row 4 is the empty wood). FILL (black) or a
+right-click erases one area, ERASE clears all. An object is found when one colour covers exactly its
+still-open areas and no other open area; its picture then shows in place and its areas lock, except
+those an unfound object still needs (five puzzles have an object wholly inside another; locking them
+would make it unfindable). Hint: click an area to outline one unfound object covering it.
+Sounds FNF/FF_COLOR, FF_FILL, FF_ERASE, OUTLINE, SUCCESS, BADCLICK.
+**Interpretation:** layout (left column of reference pictures with their silhouettes, black until
+found, pictures whose objects are all found drop out; palette and arrow positions; left/right arrows
+are UPARROW turned), boards that fit are scaled up to fill the 540x540 view, larger ones scroll
+(arrows, wheel, shift+wheel), outline colour, and the found picture: the sprite turned and scaled by
+a fit to its cells (whole degrees, scale from the extent), as the file's fields didn't give it.
