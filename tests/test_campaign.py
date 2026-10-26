@@ -84,6 +84,7 @@ def test_free_token_and_resume(app, game):
     click(app, slot)
     click(app, 306)                                   # Free
     click(app, 1201)                                  # Yes
+    tick(app, 20)                                     # a playable puzzle shows its picture first
     assert app.active().id == 130 and app.player.free == 0
     saved = Player.load("Tester")
     assert saved.total_solved == 1 and saved.city == m.city.path.split("/")[-1]

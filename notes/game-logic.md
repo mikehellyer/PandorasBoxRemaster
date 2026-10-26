@@ -95,3 +95,15 @@ A "MediaGraph" script (plain text). LocationCF cross-fades 0 silence, 1 city reg
 2 MAP.WAV, 3 the region's `_P` track in a puzzle, 4 LEVEND.WAV. INTRO.WAV plays at start-up, then MAP.
 One-shots: `S_<region>` success, CHWIN challenge won, CHMODE challenge, `C_<trickster>`,
 story voice-overs `VO/SX_<MAUI|PUCK|ERIS|COYO|MONK|ANAN|RAVE><piece>.WAV`. See `ui/music.py`.
+
+## Puzzles (play area 650x540 at (75,42) of every puzzle screen)
+
+Classes (RTTI): CImageHoleObject, CFocalPointObject, CRotoscopeObject, COverlapseObject, C3DSkinObject,
+CJesseStripsObject, CLambChopsObject (Slices), CBumpyGlassObject, CTrigramsObject (tangram), CFindNFillObject.
+How each plays is described in HELP/PANDORA.M20 (WinHelp; `strings` shows the text).
+
+### Focus Point ✅ (CFocalPointObject, `src/pbremaster/puzzles/focuspoint.py`)
+Click a piece, then another, to swap them; a piece in its own slot locks. Buttons made in code
+(`0x4a12e9`): animation toggle id 3201 at (743,409), outline toggle 3202 at (743,467) - FPN/ANIM_*, GRID_*.
+Hint = place one piece; Free token = solve. Sounds FPN/FP_SEL, FP_DESEL, FP_MOVE, FP_LOCK, FP_MO are
+named in the June 2000 data, not in the Feb 2000 EUL, so when each plays is inferred.

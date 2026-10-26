@@ -17,7 +17,8 @@ game rules come from disassembling the unprotected `PANDORA.EUL`. Mike reviews e
      PANDORA.MGD, saves per player (JSON). Puzzles show their picture and can be finished with a Free
      Puzzle token or F9 until each type is written. Not yet: Load/Save dialogs, Story book (250),
      Gallery contents, level 8 (Scalawag), timed-puzzle bonuses, the trickster icons on the map.
-   - M2 one puzzle type end to end (Slices or Lens Bender: the most data is already readable), then the other nine.
+   - M2 puzzle types: Focus Point ✅ (all 71 load and play); next Rotascope, Jesse's Strips, ...
+   - M2 (was) one puzzle type end to end (Slices or Lens Bender: the most data is already readable), then the other nine.
    - M3 the world map, cities, rewards (piece / hint / wildcard / timed), tricksters, save games, best times.
    - M4 videos (intro + story AVIs via PyAV), music, gallery, puzzles-only mode, tutorial.
 4. **Modern improvements**: resolution scaling / HD filters, widescreen frame, QoL (undo, hint tweaks), etc.

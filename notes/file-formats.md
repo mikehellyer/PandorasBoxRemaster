@@ -83,7 +83,7 @@ Official names from LANGENU.DLL 150-161. "Help file" is the quick-help RTF named
 | Name | Folder suffix | Data file | Header / notes | Help file | Sounds |
 |---|---|---|---|---|---|
 | Image Hole | IMH, IHL | `PUZZLE.IMH` + photo .JPG + thumbnail .PNG | binary, ~230-350 bytes ❓ | imageqh.rtf | IMG/ |
-| Focus Point | FPN, ZOO | `PUZZLE.ZOO` | `'MAP' 01` + 16-byte GUID ❓ | focalpt.rtf | FPN/ |
+| Focus Point ✅ | FPN, ZOO | `PUZZLE.ZOO` | Zoommess file, see below | focalpt.rtf | FPN/ |
 | Rotascope | RTT, RTS | `PUZZLE.RTT` | `'MAP' 01` + GUID, or `'Zero'` + "New Puzzle" ❓ (two variants) | rotascop.rtf | RTT/ |
 | Overlap | OVL, FSH | `PUZZLE.FSH` | `'SFHP'`, u32 3, ... ❓ | overlaps.rtf | OVER/ |
 | Outer Layer | SKN, SKI | `3DSKIN.SKI` (INI) + `3DSKIN_SPRn.PNG` + `CAMERAn/{BACK.JPG, ADD.PNG, MULT.PNG, WARPER.DAT, WARPER.MAP}` | pre-rendered 3D, warp maps ❓ | 3dskins.rtf | 3DSKIN/ |
@@ -154,3 +154,23 @@ a name; tutorial and level (master) puzzles do not. ✅
 | `*.AVI` | `OPEN.AVI` (intro) and `INT01-07.AVI` (story per level). Video **Indeo 5 (IV50)**, PCM audio. PyAV's bundled FFmpeg decodes IV50. |
 | `*.WAV` | Standard PCM. `MUSIC/` holds 22 kHz mono tracks per region (AFRICA, ASIA, ...) and `_P` variants. |
 | `HELP/*.M20` | WinHelp (.HLP) files. |
+
+## ✅ PUZZLE.ZOO (Focus Point)
+
+`src/pbremaster/data/zoo.py`, from the editor's save routine `0x4a2b80` ("Zoommess Ver.04, Microsoft (C)
+1997, written by Kirill Ageev").
+```
+0x00  0x44-byte header template ('MAP' 01, GUID, "Puzzle Desc"...), sizes patched at 0x35
+0x44  u32 desc_size = 0x160 + 36 * cells
+0x48  char copyright[64]
+0x88  params (0x120 bytes): cells, x, y, width, height, 1, 1, u32 (hi 0-6 / lo 0-1, unknown), zeros
+0x1a8 cells x { home x+16, y+16, w, h;  slot x, y, w, h;  0 }   (i32)
+then  the picture (JFIF JPEG), padding, 0x18-byte trailer
+```
+- Slots are a rearrangement of the homes: a fixed partition of the picture; the file's slot layout is
+  the starting scramble; a piece is drawn stretched into the slot it occupies.
+- x, y centre the board in the 650x540 play area at (75,42) (FPN/312.PNG matches 300.RIM there), except
+  the tutorial and Athens 1, which store (16,16); the remaster always centres.
+- Data quirks on the CD: Athens 1's header is overwritten with pixel bytes; three JPEGs are truncated
+  (libjpeg/pygame still decode them); Scalawag "City Place" stores homes 1 px low (snapped to slots);
+  Monkey level puzzle 2's JPEG is 12 px wider than the board.

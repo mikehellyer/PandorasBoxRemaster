@@ -342,18 +342,24 @@ class CityScene(Scene):
 
 # -------------------------------------------------------------------- puzzle
 class PuzzleScene(Scene):
-    """A puzzle screen (2000 Image Hole ... 13000 Find and Fill). The puzzles
-    themselves come next; for now the picture is shown and the puzzle can be
+    """A puzzle screen (2000 Image Hole ... 13000 Find and Fill) around a game from
+    pbremaster.puzzles. Types without a game yet show their picture and can be
     finished with a Free Puzzle token or (for testing) F9."""
-    AREA = pygame.Rect(40, 60, 680, 520)
+    AREA = pygame.Rect(75, 42, 650, 540)
+    SOLVED_PAUSE = 1.5          # seconds to admire the finished picture
 
     def __init__(self, app, view, level, city, puzzle, master=False, slot_id=None):
         super().__init__(app, view)
+        from ..puzzles import game_for
         self.level, self.city, self.puzzle = level, city, puzzle
         self.master, self.slot_id = master, slot_id
         self.elapsed = 0.0
         self.paused = False
-        self.picture = self._picture()
+        self.used_free = False
+        self.done_for = None
+        cls = game_for(puzzle.kind_name)
+        self.game = cls(app, puzzle) if cls else None
+        self.picture = None if self.game else self._picture()
         self.font = app.fonts.get(16)
         self.limit = puzzle.time_limit
 
@@ -376,34 +382,57 @@ class PuzzleScene(Scene):
         self.app.music.play_loop(f"MUSIC/{stem}_P.WAV" if stem else "MUSIC/CHMODE.WAV")
 
     def update(self, dt):
+        if self.game:
+            self.game.update(dt)
+            if self.game.solved:
+                self.done_for = (self.done_for or 0.0) + dt
+                if self.done_for >= self.SOLVED_PAUSE:
+                    self.app.puzzle_solved(self, used_free=self.used_free)
+                return
         if not self.paused and not self.app.dialogs:
             self.elapsed += dt
 
     def draw_back(self, surf):
-        if self.picture:
+        if self.game:
+            self.game.draw(surf)
+        elif self.picture:
             surf.blit(self.picture, self.picture.get_rect(center=self.AREA.center))
 
     def draw_front(self, surf):
         if self.app.settings.timer:
             secs = int(self.elapsed)
-            text = f"{secs // 60}:{secs % 60:02d}"
             if self.limit:
-                left = max(0, self.limit - secs)
-                text = f"{left // 60}:{left % 60:02d}"
-            img = self.font.render(text, True, TEXT)          # region 302 (702,80)-(775,101)
+                secs = max(0, self.limit - secs)
+            img = self.font.render(f"{secs // 60}:{secs % 60:02d}", True, TEXT)   # region 302
             surf.blit(img, img.get_rect(midleft=(704, 91)))
-        msg = ("This puzzle type is not playable yet. Use a Free Puzzle token, "
-               "or press F9 to mark it solved.")
-        box = pygame.Rect(0, 0, 520, 52)
-        box.midbottom = (self.AREA.centerx, self.AREA.bottom - 8)
-        pygame.draw.rect(surf, (30, 12, 4), box)
-        pygame.draw.rect(surf, TEXT, box, 1)
-        for i, line in enumerate(wrap(self.app.fonts.get(14), msg, box.w - 20)):
-            img = self.app.fonts.get(14).render(line, True, TEXT)
-            surf.blit(img, (box.x + 10, box.y + 6 + i * 18))
+        if not self.game:
+            msg = ("This puzzle type is not playable yet. Use a Free Puzzle token, "
+                   "or press F9 to mark it solved.")
+            box = pygame.Rect(0, 0, 520, 52)
+            box.midbottom = (self.AREA.centerx, self.AREA.bottom - 8)
+            pygame.draw.rect(surf, (30, 12, 4), box)
+            pygame.draw.rect(surf, TEXT, box, 1)
+            for i, line in enumerate(wrap(self.app.fonts.get(14), msg, box.w - 20)):
+                img = self.app.fonts.get(14).render(line, True, TEXT)
+                surf.blit(img, (box.x + 10, box.y + 6 + i * 18))
         if self.paused:
             shadow_text(surf, self.app.fonts.get(30), self.app.strings.get(303, "Pause"),
                         (self.AREA.centerx, self.AREA.centery - 20), centre=True)
+
+    # game input
+    def busy(self):
+        return self.paused or (self.game and self.game.solved)
+
+    def mouse_move(self, pos):
+        if self.game and not self.busy():
+            self.game.mouse_move(pos)
+        return False
+
+    def mouse_down(self, pos):
+        return bool(self.game and not self.busy() and self.game.mouse_down(pos))
+
+    def mouse_up(self, pos):
+        return bool(self.game and not self.busy() and self.game.mouse_up(pos))
 
     def command(self, cid, button):
         app = self.app
@@ -411,28 +440,51 @@ class PuzzleScene(Scene):
             app.leave_puzzle(self)
         elif cid == 303:
             self.paused = button.on
+            if self.game:
+                self.game.paused = self.paused
             app.sounds.play("PAUSE")
         elif cid == 304:
-            app.confirm(app.strings.get(1030, ""), lambda: self.restart())
+            app.confirm(app.strings.get(1030, ""), self.restart)
         elif cid == 306:
-            if app.player.free > 0:
-                app.confirm(app.strings.get(1001, ""), lambda: app.puzzle_solved(self, used_free=True))
+            if app.player.free > 0 and not self.busy():
+                app.confirm(app.strings.get(1001, ""), self.use_free)
             else:
                 app.sounds.play(app.sounds.NO_CLICK)
         elif cid == 307:
-            app.sounds.play(app.sounds.NO_CLICK)
             button.on = False
+            if self.game and app.player.hints > 0 and not self.busy():
+                app.confirm(app.strings.get(1002, ""), self.use_hint)
+            else:
+                app.sounds.play(app.sounds.NO_CLICK)
         else:
             return False
         return True
 
+    def use_free(self):
+        self.used_free = True
+        if self.game:
+            self.game.complete()
+        else:
+            self.app.puzzle_solved(self, used_free=True)
+
+    def use_hint(self):
+        if self.game.use_hint():
+            self.app.player.hints -= 1
+            self.app.save_player()
+            self.app.sounds.play("USEHINT")
+
     def restart(self):
         self.elapsed = 0.0
+        if self.game:
+            self.game.restart()
         self.app.sounds.play("RESTART")
 
     def key(self, ev):
-        if ev.key == pygame.K_F9:
-            self.app.puzzle_solved(self)
+        if ev.key == pygame.K_F9 and not (self.game and self.game.solved):
+            if self.game:
+                self.game.complete()
+            else:
+                self.app.puzzle_solved(self)
             return True
         return False
 
