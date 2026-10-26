@@ -198,3 +198,15 @@ neighbour is in. Solved when every piece is in the middle.
 would make the lenses pointless); Difficulty 0-3 -> TUTOR/EASY/MEDIUM/HARD tables; pieces are scaled
 to fit their lens (by their diagonal) and the solution to the middle's canvas; hint moves the clicked
 piece to the lens where it faces right; selection ring.
+
+### Outer Layer ✅ (C3DSkinObject, `src/pbremaster/puzzles/outerlayer.py`)
+Texts LANGENU 6204-6212 (tutorial), hint 6206, buttons Next/Previous piece 6601/6602, Rotate 6666,
+Go left/right 6667/6668, camera hotspots STATENU 6250-6253. Four stacks on the left (3DSKIN/302.PNG
+column, UPARROW/DNARROW step a stack); drag a piece onto the object and the point you hold it by
+lands on the texture point under the cursor (from the warp map); dropped within a fifth of a piece of
+its place and upright it snaps and stays. Pieces on the object can be picked up again the same way.
+Right-click / ROTATE turns 90 degrees. Solved when every piece is in place.
+**Interpretation:** stack layout and arrow positions, the snap distance, REVLF/REVRT and keys 1-4 for the
+cameras (the original also lets you click the N/E/S/W arrows painted on the table; hotspots not found),
+the hint placing the clicked piece, BRACKET0-3 round the selected stack piece, generic click sounds
+(3DSKIN has no WAVs).

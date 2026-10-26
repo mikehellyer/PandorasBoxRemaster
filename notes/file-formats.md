@@ -86,7 +86,7 @@ Official names from LANGENU.DLL 150-161. "Help file" is the quick-help RTF named
 | Focus Point ✅ | FPN, ZOO | `PUZZLE.ZOO` | Zoommess file, see below | focalpt.rtf | FPN/ |
 | Rotascope ✅ | RTT, RTS | `PUZZLE.RTT` | `'Zero'` record (the tutorial wraps it in 'MAP'), see below | rotascop.rtf | RTT/ |
 | Overlap ✅ | OVL, FSH | `PUZZLE.FSH` | see below | overlaps.rtf | OVER/ |
-| Outer Layer | SKN, SKI | `3DSKIN.SKI` (INI) + `3DSKIN_SPRn.PNG` + `CAMERAn/{BACK.JPG, ADD.PNG, MULT.PNG, WARPER.DAT, WARPER.MAP}` | pre-rendered 3D, warp maps ❓ | 3dskins.rtf | 3DSKIN/ |
+| Outer Layer ✅ | SKN, SKI | `3DSKIN.SKI` (INI) + `3DSKIN_BACK.PNG` + `3DSKIN_SPRn.PNG` + `CAMERAn/{BACK.JPG/PNG, ADD.PNG, MULT.PNG, WARPER.DAT, WARPER.MAP}` | see below | 3dskins.rtf | 3DSKIN/ |
 | Jesse's Strips ✅ | JES, JESS | `PUZZLE.JES` + picture .JPG | see below | jesse.rtf | JES/ |
 | Slices ✅ | SLC, SLICE | `STATE.TXT`, `OBJECT.WRL` (VRML 1.0), `<n>OBJ_<v>.PNG` + masks | see below | 3dslices.rtf | SLICE/ |
 | Lens Bender ✅ | BGL | `PUZZLE.BGL` (INI) + `PUZZLE_SPRn.PNG` + masks + `TILE.PNG/BMP`; lens tables `BGL/<SET>_LENSn.RTRT/.RTRS`, layout `BGL/<SET>.INI` | see below | bumpy.rtf | BGL/ |
@@ -314,4 +314,25 @@ middle 315 (RTRS samples a 540x540 canvas, RTRT ~600x600; TUTOR has no RTRS). Ou
 magnify and bend (no turn). Angle + 60 * FinalStack = 0 (mod 360) for all 313 sprites; each puzzle
 starts with 1-5 sprites in the middle. Difficulty rises with the level (0: Level 0/Coyote/Monkey,
 1: Monkey, 2: Anansi, 3: Raven).
+
+## ✅ 3DSKIN.SKI and camera warps (Outer Layer)
+
+`src/pbremaster/data/ski.py`.
+```
+[3DSkin]            ObjectCount, SegmentCount, InitialCamera (1-4), EnableRotation, PositionSnap,
+                    FlashCount, Designer, Debug, DrawManipulators
+[3DSkinSegmentN]    MinX, MinY, MaxX, MaxY: rectangles of the texture (1-5 per puzzle)
+[3DSkinSpriteN]     HasMask (always 0), InitialXpos/Ypos/Angle (0/90/180/270), InitialTray
+                    (-1 on the object, 0-3 a stack), InitialTrayOrder, InitialSegment,
+                    FinalXpos/Ypos (top-left in the texture), FinalAngle (always 0), FinalSegment
+3DSKIN_BACK.PNG     the bare texture (its size: 400x200 .. 2000x200 / 800x800)
+3DSKIN_SPRn.PNG     square pieces, 80-100 px
+CAMERAk/            BACK (JPG, 20 cameras PNG) the scene with the object blank, MULT shading,
+                    ADD highlights, all 540x540; WARPER.DAT 62-byte header (u16 1, u16, u32 540,
+                    u32 540, float bounds); WARPER.MAP defT: i16 u-plane[540][540] then v-plane,
+                    each as differences along the row. Summed: u = 16384 + texture x, v = texture y
+                    where the object (or its reflection in the mirror) shows; anything else = BACK.
+```
+View pixel = texture[v][u - 16384] * MULT / 255 + ADD. 59 of the 1323 pieces have their middle hidden
+from all four cameras, but every piece has some of its final square visible in one of them.
 
