@@ -210,3 +210,9 @@ Right-click / ROTATE turns 90 degrees. Solved when every piece is in place.
 cameras (the original also lets you click the N/E/S/W arrows painted on the table; hotspots not found),
 the hint placing the clicked piece, BRACKET0-3 round the selected stack piece, generic click sounds
 (3DSKIN has no WAVs).
+
+### Quick help ✅ (`App.quick_help`, `campaign.HelpScene`)
+The "?" button (action 2) posts 0x8065; the screen opens HELP/PANDORA.M20 at its SCREEN.DAT help topic.
+Shown in the code-built message box (900.RIM, OK 1200): title centred, short headings bold, bullets;
+the font steps down 17 -> 12 px until the topic fits. **Interpretation:** the original's viewer layout.
+

@@ -336,3 +336,14 @@ CAMERAk/            BACK (JPG, 20 cameras PNG) the scene with the object blank, 
 View pixel = texture[v][u - 16384] * MULT / 255 + ADD. 59 of the 1323 pieces have their middle hidden
 from all four cameras, but every piece has some of its final square visible in one of them.
 
+## ✅ HELP/PANDORA.M20 (quick help)
+
+`src/pbremaster/data/m20.py`. A MediaView 2.0 title (magic `3F 5F 04 01`), opened by the game's own
+viewer (`0x5075d0`) when a screen gets message 0x8065 from its help button (action 2), at the topic
+named in SCREEN.DAT's help field. Directory at the u32 offset in the header + 0x3C: entries of
+`u8 n, name[n], varint offset, varint size, u8 flags` (7-bit varints, low first). Topic files are
+named `>%08X` of WinHelp's context hash of the help name without ".rtf" (h = h*43 + v; digits 0-9,
+letters 0x11+). 16 topics: every help name except Chiseler and sheet (cut puzzles). Topic = formatting
+records ending 0xFF, then the text uncompressed: NUL-separated runs (format changes), an empty run ends
+a paragraph, `\xB7` starts a bullet. HELP/MESSAGE.M20 is the same format (bonus messages, unused here).
+

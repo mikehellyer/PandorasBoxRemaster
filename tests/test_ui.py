@@ -90,3 +90,20 @@ def test_every_screen_draws(app):
     for sid in app.ui.layout.screens:
         app.stack.append(widgets.ScreenView(app.ui, sid))
         app.draw()
+
+
+def test_quick_help(app):
+    from pbremaster.data import m20, screens as sd
+
+    data = app.game.file("HELP", "PANDORA.M20").read_bytes()
+    names = {s.help_rtf for s in app.ui.layout.screens.values() if s.help_rtf}
+    missing = {n for n in names if m20.topic(data, n) is None}
+    assert missing == {"Chiseler.rtf", "sheet.rtf"}         # puzzles cut from the game
+    assert m20.topic(data, "mainqh.rtf")[0] == "Getting started"
+
+    help_button = next(c.id for c in app.ui.layout.controls_of(100)
+                       if isinstance(c, sd.Button) and c.action == sd.ACT_HELP)
+    click(app, help_button)
+    assert app.dialogs and app.active().id == 900
+    click(app, 1200)                                          # OK
+    assert not app.dialogs

@@ -539,6 +539,62 @@ class MessageScene(Scene):
             y += 26
 
 
+class HelpScene(MessageScene):
+    """Quick help: a topic of HELP/PANDORA.M20 (data.m20) in the message box.
+    The title is centred, headings (short lines without a full stop) are bold,
+    bullets hang; the font shrinks until the topic fits."""
+    TEXT_AREA = pygame.Rect(30, 92, 422, 312)
+
+    def __init__(self, app, view, paragraphs):
+        Scene.__init__(self, app, view)
+        self.paragraphs = paragraphs
+        for size in (17, 16, 15, 14, 13, 12):
+            self.size = size
+            self.layout = self.lay_out(size)
+            if self.layout and self.layout[-1][2] + self.line_h(size) <= self.TEXT_AREA.h:
+                break
+
+    @staticmethod
+    def line_h(size):
+        return size + 3
+
+    def lay_out(self, size):
+        """(text, font, y, x, centre) lines inside TEXT_AREA."""
+        width, lh = self.TEXT_AREA.w, self.line_h(size)
+        out, y = [], 0
+        for k, para in enumerate(self.paragraphs):
+            if k == 0:
+                font = self.app.fonts.get(size + 3, bold=True)
+                for line in wrap(font, para, width):
+                    out.append((line, font, y, 0, True))
+                    y += lh + 3
+                y += 4
+                continue
+            bullet = para.startswith("\u2022 ")
+            heading = not bullet and len(para) < 40 and not para.endswith((".", ":"))
+            font = self.app.fonts.get(size, bold=heading)
+            if heading and k > 1:
+                y += lh // 3
+            indent = font.size("\u2022 ")[0] if bullet else 0
+            text = para[2:] if bullet else para
+            for i, line in enumerate(wrap(font, text, width - indent)):
+                if bullet and i == 0:
+                    out.append(("\u2022", font, y, 0, False))
+                out.append((line, font, y, indent, False))
+                y += lh
+        return out
+
+    def draw_front(self, surf):
+        area = self.TEXT_AREA.move(self.view.origin)
+        total = (self.layout[-1][2] + self.line_h(self.size)) if self.layout else 0
+        top = area.y + max(0, (area.h - total) // 2)
+        for text, font, y, x, centre in self.layout:
+            if centre:
+                shadow_text(surf, font, text, (area.centerx, top + y), centre=True)
+            else:
+                shadow_text(surf, font, text, (area.x + x, top + y))
+
+
 def message_view(ui, buttons):
     """buttons: control ids such as 1200 OK, 1201 Yes, 1202 No, 1204 Map, 1205 Stay, 1206 Capture."""
     controls = []

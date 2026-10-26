@@ -13,7 +13,7 @@ import numpy as np
 import pygame
 
 from .. import __version__
-from ..data import catalogue, cursors, gamedir
+from ..data import catalogue, cursors, gamedir, m20
 from ..data import screens as sd
 from ..data.assets import Assets
 from ..data.rof import ROF
@@ -205,6 +205,24 @@ class App:
         campaign.MessageScene(self, view, text)
         self.sounds.play(Sounds.ALERT)
         return self.dialog(view, (lambda v, r: on_result(r)) if on_result else None)
+
+    def quick_help(self):
+        """The screen's help topic (SCREEN.DAT help field) from HELP/PANDORA.M20, as the
+        original's viewer (0x5075d0) shows it on message 0x8065."""
+        self.sounds.play(Sounds.HELP)
+        screen = self.ui.layout.screens.get(self.active().id)
+        name = screen.help_rtf if screen else ""
+        if not name:
+            return None
+        try:
+            paragraphs = m20.topic(self.game.file("HELP", "PANDORA.M20").read_bytes(), name)
+        except (FileNotFoundError, ValueError):
+            paragraphs = None
+        if not paragraphs:
+            return None
+        view = campaign.message_view(self.ui, [1200])
+        campaign.HelpScene(self, view, paragraphs)
+        return self.dialog(view)
 
     def confirm(self, text, on_yes):
         self.message(text, (1201, 1202), lambda r: on_yes() if r == YES else None)
@@ -499,8 +517,7 @@ class App:
             if self.dialogs:
                 self.end_dialog(c.arg)
         elif c.action == sd.ACT_HELP:
-            # The quick-help RTFs named in SCREEN.DAT are not on the CD.
-            self.sounds.play(Sounds.HELP)
+            self.quick_help()
         elif c.action == sd.ACT_QUIT:
             self.running = False
 
