@@ -84,11 +84,17 @@ class PuzzleGame:
     def mouse_up(self, pos):
         for b in self.buttons:
             if b.rect.collidepoint(pos):
-                b.on = not b.on
-                self.app.sounds.play(self.app.sounds.CLICK)
-                self.toggled(b)
+                self.press(b)
                 return True
         return False
+
+    # The type's Rotate / Flip buttons, if it has them: the R and F keys press them (ours).
+    rotate = flip = None
+
+    def press(self, button):
+        button.on = not button.on
+        self.app.sounds.play(self.app.sounds.CLICK)
+        self.toggled(button)
 
     def toggled(self, button):
         pass

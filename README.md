@@ -15,7 +15,8 @@ you'd rather not keep the CD in the drive. The choice is remembered; change it l
 **Options > Game files**.
 
 Extras the original didn't have: a puzzle you leave half-finished is still as you left it next
-time, Ctrl+Z / Ctrl+Y undo and redo moves (not in Image Hole).
+time, Ctrl+Z / Ctrl+Y undo and redo moves (not in Image Hole), and R, F and H
+press Rotate, Flip and Hint.
 
 The main menu tells you when a newer version is out; nothing is downloaded until you click Update.
 

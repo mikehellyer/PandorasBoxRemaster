@@ -310,3 +310,9 @@ Ctrl+Z undoes the last move on a puzzle screen; Ctrl+Y or Ctrl+Shift+Z redoes it
 is picked up or dragged (`carrying()`) and states that only differ in the view (`undo_key()`: Jesse's
 Strips' tray, Outer Layer's camera). Up to 500 steps; Restart clears the history. Image Hole has no
 undo because its holes keep moving on their own. A Hint stays used after its piece is undone.
+
+### Keyboard shortcuts (ours, not in the original)
+On a puzzle screen R presses the type's Rotate button, F its Flip button (`PuzzleGame.rotate` /
+`.flip`; Interlock and Slices have both, Jesse's Strips, Overlap, Lens Bender and Outer Layer only
+Rotate) and H the Hint button (307). A key does exactly what a click on the button does, sound
+included; a type without the button gives the "no" click.

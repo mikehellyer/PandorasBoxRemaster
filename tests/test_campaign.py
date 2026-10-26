@@ -489,3 +489,38 @@ def test_undo_works_for_every_type(app):
         assert json.loads(json.dumps(g.save_state())) == start and not g.solved, kind
         scene.finished = True
         app.back()
+
+
+def test_rotate_flip_and_hint_keys(app):
+    new_player(app)
+    app.player_ready()
+    level, city, puzzle = puzzle_of_each_type(app)["Interlock"]
+    app.open_puzzle(level, city, puzzle)
+    app.dialogs.clear()
+    scene = app.view.scene
+    g = scene.game
+    p = next(p for p in g.pieces if not p.placed)
+    g.selected = p
+    rotation, flip = p.at.rotation, p.at.flip
+    key(app, pygame.K_r)
+    assert p.at.rotation == (rotation + 1) % 6 or p.placed
+    key(app, pygame.K_f)
+    assert p.at.flip != flip or p.placed
+    assert len(scene.history) >= 2                                 # turning is an undoable move
+    app.player.hints = 0
+    key(app, pygame.K_h)
+    assert app.dialogs and "no Hints" in " ".join(app.active().scene.lines)
+    app.dialogs.clear()
+    app.player.hints = 1
+    key(app, pygame.K_h)
+    click(app, 1201)                                               # Yes
+    assert g.hint_mode
+    scene.finished = True
+    app.back()
+
+    level, city, puzzle = puzzle_of_each_type(app)["Focus Point"]  # no Rotate button
+    app.open_puzzle(level, city, puzzle)
+    app.dialogs.clear()
+    where = list(app.view.scene.game.where)
+    key(app, pygame.K_r)
+    assert app.view.scene.game.where == where

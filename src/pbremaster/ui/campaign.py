@@ -666,6 +666,23 @@ class PuzzleScene(Scene):
             return False
         return True
 
+    # Keyboard shortcuts (ours): R Rotate and F Flip press the puzzle's own buttons, H the Hint button.
+    def shortcut(self, ev):
+        if ev.mod & (pygame.KMOD_CTRL | pygame.KMOD_ALT) or not self.game or self.busy():
+            return False
+        if ev.key in (pygame.K_r, pygame.K_f):
+            button = self.game.rotate if ev.key == pygame.K_r else self.game.flip
+            if button is None:
+                self.app.sounds.play(self.app.sounds.NO_CLICK)
+            else:
+                self.game.press(button)
+                self.snapshot()
+            return True
+        if ev.key == pygame.K_h and self.view.by_id.get(307):
+            self.command(307, self.view.by_id[307])
+            return True
+        return False
+
     def use_free(self):
         self.used_free = True
         if self.game:
@@ -700,6 +717,8 @@ class PuzzleScene(Scene):
             return True
         if self.game and not self.busy() and self.game.key(ev):
             self.snapshot()
+            return True
+        if self.shortcut(ev):
             return True
         if ev.key == pygame.K_F9 and not (self.game and self.game.solved):
             if self.game:
