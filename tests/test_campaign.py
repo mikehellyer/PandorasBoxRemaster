@@ -53,6 +53,8 @@ def test_play_video_map_city_puzzle(app):
     tick(app)
     assert app.view.id == 40 and app.view.scene.video.frame is not None
     click_at(app, (400, 300))                         # skip it
+    assert app.view.id == 250 and app.view.scene.page == 1   # the story's first page opens the level
+    click(app, 251)                                   # close the book
     assert app.view.id == 400
     names = {app.city_name(m.city) for m in app.view.scene.markers}
     assert names == {"Cairo", "Honolulu", "Madrid", "New York", "Paris"}
@@ -65,6 +67,8 @@ def test_play_video_map_city_puzzle(app):
     tick(app, 20)                                     # the finished picture shows first
     assert app.active().id == 130                     # Congratulations
     click(app, 131)                                   # Continue
+    assert app.view.id == 250 and app.view.scene.page == 2   # the story goes on: where to look next
+    click(app, 251)
     assert app.active().id == 900                     # "You found the piece in this city."
     assert app.player.pieces == ["LEVEL.01.MAUI/CITY.06.CAIRO"]
     click(app, 1204)                                  # Map
@@ -83,6 +87,7 @@ def test_free_token_and_resume(app, game):
     new_player(app)
     click(app, 101)
     click_at(app, (400, 300))
+    click(app, 251)                                   # close the story's first page
     app.player.free = 1
     m = app.view.scene.markers[0]
     click_at(app, m.rect.center)
@@ -303,3 +308,24 @@ def test_speed_puzzle_bonuses(app):
     city = solve_speed_puzzle(app, "CITY.24.PHILADELPHIA", hint=True)
     assert city.path not in app.player.revealed and app.player.free == free
     assert not app.dialogs or "beat the clock" not in " ".join(getattr(app.active().scene, "lines", []))
+
+
+def test_story_book(app):
+    new_player(app)
+    app.player_ready()
+    app.player.videos_seen.append(1)
+    app.resume()
+    assert app.view.id == 250 and app.view.scene.pages == 1   # nothing found yet: one page
+    click(app, 253)                                   # next: no further page yet
+    assert app.view.scene.page == 1
+    click(app, 251)
+    app.player.pieces += [p.path for p in list(app.levels[1].cities.values())[:2]]
+    click(app, 53)                                    # the Story button on the map
+    book = app.view.scene
+    assert app.view.id == 250 and book.pages == 3 and book.page == 3
+    click(app, 252)                                   # back a page
+    assert book.page == 2 and "1.2" in app.player.stories_seen
+    click_at(app, (760, 565))                         # the arrow painted in the corner: forward
+    assert book.page == 3
+    ev(app, pygame.KEYDOWN, key=pygame.K_ESCAPE, unicode="", mod=0)
+    assert app.view.id == 400

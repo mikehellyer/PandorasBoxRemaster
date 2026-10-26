@@ -275,3 +275,14 @@ hidden object's location is shown on a puzzle button; otherwise Free Puzzle toke
 ("three Free Puzzle tokens"). **Interpretation:** the revealed marker (the city's piece icon as a badge
 on the piece puzzle's button), and three tokens as 1037 says (only one increment was traced).
 
+### Story book (screen 250, button 53)
+Each level's story is five pages, LANGENU 1900 + 10 * level + page (1911-1975), read aloud by
+VO/SX_<trickster><page>.WAV (PANDORA.MGD "Story" event: Piece=n plays StoryVOColl n). Page 1 opens the
+level and names the first piece to find; page n+1 follows the nth piece found. Screen 250 is code-drawn
+on 250.RIM (an open book) with buttons 252/253 (page back/on) and 251 (close); the Story button 53
+(53u/53d, top bar at 542,4) is added in code (the main menu setup at 0x41ab10 places it too). The book
+opens at the level's start (page 1) and after each found piece (the next page), then the piece message.
+**Interpretation:** the text on the blank right page, the painted corner arrows also turning pages,
+pages limited to those unlocked, and the book on the map and city screens (not the main menu).
+The remaster used to play voice-over n after the nth piece, one page behind; fixed.
+

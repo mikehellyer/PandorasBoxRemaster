@@ -35,6 +35,7 @@ class Player:
     master_solved: dict[str, list[int]] = field(default_factory=dict)
     captured: list[int] = field(default_factory=list)            # levels whose trickster is captured
     videos_seen: list[int] = field(default_factory=list)         # levels whose intro video was shown
+    stories_seen: list[str] = field(default_factory=list)        # story pages shown, "level.page"
     hints: int = 0
     free: int = 0
     toward_token: int = 0

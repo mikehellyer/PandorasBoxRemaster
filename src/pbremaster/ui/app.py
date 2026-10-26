@@ -412,6 +412,24 @@ class App:
         level = self.levels[p.level]
         if p.city and p.city in level.cities:
             self.enter_city(level.cities[p.city])
+        elif f"{level.number}.1" not in p.stories_seen and not p.level_pieces(level.path):
+            self.open_story(level, 1)                 # the level's story opens it
+
+    def open_story(self, level=None, page=None, then=None):
+        """The Story book (screen 250) for the current level, at a page (default: the latest)."""
+        level = level or self.levels[self.player.level]
+        if not 1 <= level.number <= LAST_LEVEL:
+            self.sounds.play(Sounds.NO_CLICK)
+            return
+        view = campaign.story_view(self.ui)
+        campaign.StoryScene(self, view, level, page, then)
+        self.push(view)
+
+    def with_story_button(self, screen_id):
+        """Map and city screens with the original's Story button (control 53, not in any
+        SCREEN.DAT screen list; the game adds it in code)."""
+        layout = self.ui.layout
+        return widgets.ScreenView(self.ui, screen_id, controls=layout.controls_of(screen_id) + [layout.controls[53]])
 
     def play_video(self, name, then):
         try:
@@ -423,7 +441,7 @@ class App:
         self.push(scene.view)
 
     def show_map(self):
-        view = widgets.ScreenView(self.ui, WORLD_MAP)
+        view = self.with_story_button(WORLD_MAP)
         campaign.MapScene(self, view)
         if self.view.id == WORLD_MAP:
             return self.replace(view)
@@ -433,7 +451,7 @@ class App:
         level = self.levels[self.player.level]
         self.player.city = self.player.last_city = city.path.split("/")[-1]
         self.save_player()
-        view = widgets.ScreenView(self.ui, CITY)
+        view = self.with_story_button(CITY)
         campaign.CityScene(self, view, level, city)
         self.push(view)
 
@@ -533,10 +551,12 @@ class App:
             return
         if "piece" in events:
             n = len(p.level_pieces(scene.level.path))
-            stem = world.VO_STEMS[scene.level.number - 1]
-            self.music.play_once(f"VO/SX_{stem}{n}.WAV")
             buttons = (1206, 1205) if "challenge" in events else (1204, 1205)
-            self.message(self.status.get(210, ""), buttons, self.after_piece)
+            if n < campaign.STORY_PAGES:              # the story's next page: where to look next
+                self.open_story(scene.level, n + 1,
+                                then=lambda: self.message(self.status.get(210, ""), buttons, self.after_piece))
+            else:
+                self.message(self.status.get(210, ""), buttons, self.after_piece)
             return
         if "city_done" in events:
             self.message(self.strings.get(1011, ""), (1200,), lambda r: self.leave_city())
@@ -690,6 +710,8 @@ class App:
         c = button.ctl
         if c.action == sd.ACT_COMMAND:
             self.command(c.arg, button)
+        elif c.action == sd.ACT_SCREEN and c.arg == 250:
+            self.open_story()                       # Story button (53)
         elif c.action == sd.ACT_SCREEN:
             self.show(c.arg)
         elif c.action == sd.ACT_END_DIALOG:
