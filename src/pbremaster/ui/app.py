@@ -7,6 +7,7 @@ a dialog. Screens with code-drawn content get a Scene (ui/campaign.py).
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import sys
 
 import numpy as np
@@ -21,7 +22,8 @@ from ..data.strings import load_strings
 from ..game import world
 from ..game.progress import Player
 from ..settings import Settings
-from . import campaign, widgets
+from . import campaign, setup, widgets
+from .update_notice import UpdateNotice
 from .media import Fonts, Sounds
 from .music import Music
 
@@ -29,6 +31,7 @@ WIDTH, HEIGHT = 800, 600
 
 # Screen ids (SCREEN.DAT)
 MAIN, LOAD_DLG, SAVE_DLG, OPTIONS_DLG = 100, 101, 102, 103
+GAME_FILES = 790        # our button on the Options dialog: back to the setup screen
 PUZZLES_ONLY, WORLD_MAP, CITY, PRACTICE_CITY, GALLERY = 150, 400, 500, 501, 600
 CREDITS, ABOUT = 1998, 1202
 LAST_LEVEL = 7          # level 8 (Scalawag) is not wired up yet
@@ -142,6 +145,8 @@ class App:
         self.dialogs: list[tuple[widgets.ScreenView, callable]] = []
         self.menu: DropMenu | None = None
         self.running = True
+        self.change_files = False
+        self.update_notice = UpdateNotice(self)     # main() starts the check
         self.show(MAIN)
 
     # ---------------------------------------------------------------- screens
@@ -183,6 +188,8 @@ class App:
             self.fill_puzzle_list(view, 150)
 
     def dialog(self, view_or_id, on_result=None):
+        if view_or_id == OPTIONS_DLG:
+            view_or_id = self.options_view()
         view = view_or_id if isinstance(view_or_id, widgets.ScreenView) else widgets.ScreenView(self.ui, view_or_id)
         self.dialogs.append((view, on_result))
         if view.id == OPTIONS_DLG:
@@ -190,6 +197,18 @@ class App:
                 view[cid].on = on
         if view.scene:
             view.scene.enter()
+        return view
+
+    def options_view(self):
+        """Screen 103 plus a 'Game files' button in the Credits/About style above them."""
+        layout = self.ui.layout
+        controls = layout.controls_of(OPTIONS_DLG)
+        credits = layout.controls[716]
+        extra = dataclasses.replace(credits, id=GAME_FILES, arg=GAME_FILES, label_id=0,
+                                    rect=(credits.rect[0], credits.rect[1] - 41, 0, 0))
+        view = widgets.ScreenView(self.ui, OPTIONS_DLG, controls=controls + [extra])
+        view[GAME_FILES].label = "Game files"
+        view[GAME_FILES].caption = "Choose where your Pandora's Box files are."
         return view
 
     def end_dialog(self, result):
@@ -444,6 +463,9 @@ class App:
         elif cid == 104:                    # PUZZLES ONLY (0x41c500)
             if self.player_ready():
                 self.show(PUZZLES_ONLY)
+        elif cid == GAME_FILES:             # ours: change where the original files are
+            self.change_files = True
+            self.running = False
         elif cid == 105:                    # OPTIONS dialog (0x414cf0)
             self.dialog(OPTIONS_DLG, self.options_closed)
         elif cid == 106:                    # LOAD dialog (0x41c3e0)
@@ -550,6 +572,8 @@ class App:
             if scene and hasattr(scene, "right_click"):
                 scene.right_click(pos)
         elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
+            if view.id == MAIN and not self.dialogs and self.update_notice.click(pos):
+                return
             if scene and scene.mouse_down(pos):
                 return
             hit = view.mouse_down(pos)
@@ -605,6 +629,7 @@ class App:
             if view.scene:
                 view.scene.update(dt)
         self.music.update(dt)
+        self.update_notice.update(dt)
 
     # ------------------------------------------------------------- drawing
     def draw(self):
@@ -613,6 +638,8 @@ class App:
         self.view.draw(c)
         for view, _ in self.dialogs:
             view.draw(c)
+        if self.view.id == MAIN and not self.dialogs:
+            self.update_notice.draw(c)
         if self.menu:
             self.menu.draw(c)
         return c
@@ -675,6 +702,16 @@ def splash(app, clock):
     return True
 
 
+def pick_game(settings, window, message="", current=None, can_go_back=False):
+    """Run the setup screen; save and return the chosen folder (None: quit / back)."""
+    picked = setup.SetupScreen(window, message, current, can_go_back).run()
+    if not picked:
+        return None
+    settings.game_dir = picked
+    settings.save()
+    return gamedir.GameDir(picked)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="pbremaster")
     ap.add_argument("--data", help="folder with the original Pandora's Box files")
@@ -684,15 +721,28 @@ def main(argv=None):
     ap.add_argument("--hover", type=int, help="control id shown hovered for --screenshot")
     args = ap.parse_args(argv)
 
-    try:
-        game = gamedir.find(args.data)
-    except FileNotFoundError as e:
-        print(e, file=sys.stderr)
-        return 1
-
     pygame.mixer.pre_init(22050, -16, 2, 1024)
     pygame.init()
+    try:
+        from importlib.resources import files
+        pygame.display.set_icon(pygame.image.load(str(files("pbremaster") / "resources" / "icon.png")))
+    except (OSError, pygame.error, ModuleNotFoundError):
+        pass
     settings = Settings.load()
+    try:
+        game = gamedir.find(args.data, settings.game_dir)
+    except FileNotFoundError as e:
+        if args.screenshot:
+            print(e, file=sys.stderr)
+            return 1
+        window = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+        pygame.display.set_caption(f"Pandora's Box Remaster {__version__}")
+        gone = (f"Your game files at {settings.game_dir} can't be found. Is the CD in the drive?"
+                if settings.game_dir else "")
+        game = pick_game(settings, window, gone)
+        if game is None:
+            pygame.quit()
+            return 0
     strings = load_strings(game.file("LANGENU.DLL"))
     pygame.display.set_caption(f"{strings.get(56, 'Pandora' + chr(39) + 's Box')} Remaster {__version__}")
 
@@ -708,20 +758,31 @@ def main(argv=None):
         pygame.image.save(app.draw(), args.screenshot)
         return 0
 
-    app = App(game, settings)
-    app.open_window()
-    app.set_cursor()
-    clock = pygame.time.Clock()
-    app.music.play_once("MUSIC/INTRO.WAV")
-    if not splash(app, clock):
-        return 0
-    while app.running:
-        for ev in pygame.event.get():
-            app.handle(ev)
-        app.update(clock.get_time() / 1000)
-        present(app.window, app.draw())
-        clock.tick(60)
-    app.save_player()
+    first = True
+    while True:
+        app = App(game, settings)
+        app.open_window()
+        app.set_cursor()
+        clock = pygame.time.Clock()
+        if first:
+            app.update_notice.start_check()
+            app.music.play_once("MUSIC/INTRO.WAV")
+            if not splash(app, clock):
+                return 0
+            first = False
+        while app.running:
+            for ev in pygame.event.get():
+                app.handle(ev)
+            app.update(clock.get_time() / 1000)
+            present(app.window, app.draw())
+            clock.tick(60)
+        app.save_player()
+        if not app.change_files:
+            break
+        app.music.stop()
+        pygame.mixer.stop()
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+        game = pick_game(settings, app.window, current=str(game.data.parent), can_go_back=True) or game
     pygame.quit()
     return 0
 

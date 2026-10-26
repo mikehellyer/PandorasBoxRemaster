@@ -22,4 +22,9 @@ game rules come from disassembling the unprotected `PANDORA.EUL`. Mike reviews e
    - M3 the world map, cities, rewards (piece / hint / wildcard / timed), tricksters, save games, best times.
    - M4 videos (intro + story AVIs via PyAV), music, gallery, puzzles-only mode, tutorial.
 4. **Modern improvements**: resolution scaling / HD filters, widescreen frame, QoL (undo, hint tweaks), etc.
-5. **Builds**: Linux and Windows only (PyInstaller, as with the Simple-* apps).
+5. **Builds** 🟡: Linux and Windows only. Done locally: first-run setup screen (`ui/setup.py`: detect CD /
+   install / Wine / copied data, browse via zenity/kdialog/Tk, check, optional copy to the data folder,
+   saved as `Settings.game_dir`, Options > Game files), update check (`update.py`, notice on the main
+   menu), own icon, PyInstaller spec, `.deb`, AppImage and Inno Setup scripts, GitHub workflows. The
+   Linux onedir build and `.deb` are tested locally; the AppImage and Windows installer only build in
+   CI. Waiting on: a GitHub repo (mikehellyer/PandorasBoxRemaster, as `update.py` expects).

@@ -27,6 +27,7 @@ class Settings:
     timer: bool = True
     players: list[str] = field(default_factory=list)   # most recent first
     fullscreen: bool = False
+    game_dir: str | None = None                          # the player's original files (setup screen)
 
     @classmethod
     def load(cls, path: Path | None = None) -> "Settings":

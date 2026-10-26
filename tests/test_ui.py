@@ -107,3 +107,12 @@ def test_quick_help(app):
     assert app.dialogs and app.active().id == 900
     click(app, 1200)                                          # OK
     assert not app.dialogs
+
+
+def test_options_game_files_button(app):
+    from pbremaster.ui.app import GAME_FILES, OPTIONS_DLG
+
+    app.dialog(OPTIONS_DLG, app.options_closed)
+    assert app.active()[GAME_FILES].label == "Game files"
+    click(app, GAME_FILES)
+    assert app.change_files and not app.running

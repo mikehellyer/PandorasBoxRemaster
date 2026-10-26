@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Pandora's Box Remaster
+Comment=Remaster of Microsoft Pandora's Box (needs your own copy of the game)
+Exec=/opt/pandoras-box-remaster/PandorasBoxRemaster
+Icon=pandoras-box-remaster
+Terminal=false
+Categories=Game;LogicGame;

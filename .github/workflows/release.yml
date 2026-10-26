@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22.04 so the Linux build also runs on older glibc (Pop!_OS 22.04 and up)
+        os: [ubuntu-22.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Check the tag matches the version
+        shell: bash
+        run: |
+          v="$(grep -o '__version__ = "[^"]*"' src/pbremaster/__init__.py | cut -d'"' -f2)"
+          [ "v$v" = "${{ github.ref_name }}" ] || { echo "tag ${{ github.ref_name }} != version $v"; exit 1; }
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pyinstaller
+
+      - name: Build with PyInstaller
+        run: pyinstaller --noconfirm packaging/pyinstaller/pbremaster.spec
+
+      - name: Package (.deb and AppImage)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update && sudo apt-get install -y libfuse2
+          bash packaging/linux/build-deb.sh
+          bash packaging/linux/build-appimage.sh
+
+      - name: Install Inno Setup
+        if: runner.os == 'Windows'
+        run: choco install innosetup -y --no-progress
+
+      - name: Package (Windows installer)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$version" "packaging\windows\installer.iss"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pbremaster-${{ runner.os }}
+          path: |
+            dist/*.deb
+            dist/*.AppImage
+            dist/*.exe
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
