@@ -325,3 +325,10 @@ backwards: text whose pixels are untouched is taken out (the earlier pixels go b
 draws it again from the same font at the window's scale, centred on the scaled box and cut to any
 clip. Text that something later drew over stays in the canvas as it was. Settings > "High-resolution
 text" (on by default) turns it off; it does nothing when the window isn't bigger than 800x600.
+
+### Widescreen side panels (ours, `ui/display.py`)
+On a window wider than 4:3 the bars either side of the picture show the dark burl from the puzzle
+screens' play area (300.RIM, 75,42 650x540), scaled to the picture's height, darkened, and shaded
+towards the picture; the right panel is the left one mirrored. Each bar shows the part of the panel
+nearest the picture, so wider screens reveal more of it. Settings > "Side panels" turns them off
+(black bars); they are black anyway until the game files are loaded (the setup screen).

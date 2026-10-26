@@ -38,8 +38,9 @@ MAIN, LOAD_DLG, SAVE_DLG, OPTIONS_DLG = 100, 101, 102, 103
 SETTINGS, GAME_FILES = 791, 790
 SETTINGS_DLG, SETTINGS_TITLE, SETTINGS_OK = 7030, 7031, 7039
 SETTINGS_SWITCHES = [(7040, "Full screen"), (7041, "Sharp scaling"), (7042, "Check for updates"),
-                     (7043, "High-resolution text")]
-SETTINGS_FIELDS = {7040: "fullscreen", 7041: "sharp", 7042: "check_updates", 7043: "hires_text"}
+                     (7043, "High-resolution text"), (7044, "Side panels")]
+SETTINGS_FIELDS = {7040: "fullscreen", 7041: "sharp", 7042: "check_updates", 7043: "hires_text",
+                   7044: "side_panels"}
 PUZZLES_ONLY, WORLD_MAP, CITY, PRACTICE_CITY, GALLERY = 150, 400, 500, 501, 600
 CREDITS, ABOUT = 1998, 1202
 # The campaign is levels 1-7, one trickster each (LANGENU 441-447, 1221-1227). LEVEL.08.SCALAWAG
@@ -297,8 +298,8 @@ class App:
                      dataclasses.replace(c[755], id=SETTINGS_TITLE + 1, string_id=0)]
         for k, (cid, _) in enumerate(SETTINGS_SWITCHES):
             controls.append(dataclasses.replace(c[721], id=cid, action=sd.ACT_COMMAND, arg=cid,
-                                                rect=(355, 96 + 60 * k, 0, 0)))
-            controls.append(dataclasses.replace(c[710], id=cid + 10, string_id=0, rect=(76, 121 + 60 * k, 0, 0)))
+                                                rect=(355, 96 + 50 * k, 0, 0)))
+            controls.append(dataclasses.replace(c[710], id=cid + 10, string_id=0, rect=(76, 121 + 50 * k, 0, 0)))
         controls.append(dataclasses.replace(c[716], id=GAME_FILES, arg=GAME_FILES, label_id=0))
         controls.append(dataclasses.replace(c[705], id=SETTINGS_OK, arg=1, label_id=0, rect=(170, 461, 0, 0)))
         view = widgets.ScreenView(self.ui, SETTINGS_DLG, background="700.bmp", controls=controls)
@@ -851,6 +852,10 @@ class App:
     def open_window(self):
         if self.window is None:
             self.window = Display(self.settings)
+        try:
+            self.window.set_side_art(self.assets.image("SCREENS/300.RIM"))
+        except (KeyError, ValueError, pygame.error):
+            self.window.set_side_art(None)
 
     def set_cursor(self):
         """The game's own arrow (cursor 109 in PANDORA.EUL), if the EUL is there."""

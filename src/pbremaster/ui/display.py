@@ -5,8 +5,10 @@ sampling into an intermediate texture, then scales that to the window with linea
 filtering ("sharp bilinear"): pixel edges stay crisp at any window size, without the
 uneven pixels of plain nearest scaling. Smooth scaling stretches the canvas with
 linear filtering straight away (softer, like the first remaster builds). Both keep
-the 4:3 shape with black borders. If no renderer can be made, the canvas is
-smooth-scaled on the CPU instead.
+the 4:3 shape. On a wider window the bars either side show the dark burl of the puzzle
+screens (300.RIM, set_side_art), shaded towards the picture; until the game files are
+loaded, or with Settings > "Side panels" off, they are black. If no renderer can be
+made, the canvas is smooth-scaled on the CPU instead.
 """
 from __future__ import annotations
 
@@ -65,6 +67,8 @@ class Display:
         self.big = None
         self.text_cache = {}            # (TextInfo, scale) -> image or texture
         self.text_scale = None
+        self.sides = None               # (left, right) panels, 600 high, inner edge towards the picture
+        self.side_tex = None
         self.windowed_size = size
         if settings.fullscreen:
             self.win.set_fullscreen(desktop=True)
@@ -82,6 +86,38 @@ class Display:
     def to_canvas(self, pos):
         d = self.dest()
         return int((pos[0] - d.x) * WIDTH / d.w), int((pos[1] - d.y) * HEIGHT / d.h)
+
+    # --------------------------------------------------------- side panels
+    def set_side_art(self, art: pygame.Surface | None, area=pygame.Rect(75, 42, 650, 540)):
+        """Widescreen side panels from a puzzle screen's dark burl (its play area)."""
+        self.sides = self.side_tex = None
+        if art is None:
+            return
+        burl = art.subsurface(area.clip(art.get_rect()))
+        panel = pygame.transform.smoothscale(burl, (round(burl.get_width() * HEIGHT / burl.get_height()), HEIGHT))
+        panel = panel.convert_alpha() if pygame.display.get_surface() else panel.copy()
+        shade = pygame.Surface(panel.get_size(), pygame.SRCALPHA)
+        w = panel.get_width()
+        for x in range(w):              # darker overall, and darkest next to the picture
+            t = x / (w - 1)
+            edge = max(0.0, (t - 0.9) / 0.1) ** 2
+            shade.fill((0, 0, 0, int(255 * min(1.0, 0.35 + 0.6 * edge))), (x, 0, 1, HEIGHT))
+        panel.blit(shade, (0, 0))
+        self.sides = (panel, pygame.transform.flip(panel, True, False))
+
+    def side_spots(self, d: pygame.Rect):
+        """(panel index, source rect, window rect) for the bars left and right of the picture."""
+        if not (self.sides and self.settings.side_panels) or d.x <= 0:
+            return []
+        ww = self.win.size[0]
+        scale = d.h / HEIGHT
+        pw = self.sides[0].get_width()
+        spots = []
+        for k, bar in enumerate((pygame.Rect(0, d.y, d.x, d.h), pygame.Rect(d.right, d.y, ww - d.right, d.h))):
+            need = min(pw, max(1, round(bar.w / scale)))
+            src = pygame.Rect(pw - need if k == 0 else 0, 0, need, HEIGHT)
+            spots.append((k, src, bar))
+        return spots
 
     # ------------------------------------------------------------- drawing
     def lift_text(self, canvas):
@@ -117,6 +153,11 @@ class Display:
         r.target = None
         r.draw_color = (0, 0, 0, 255)
         r.clear()
+        spots = self.side_spots(d)
+        if spots and self.side_tex is None:
+            self.side_tex = [video.Texture.from_surface(r, s) for s in self.sides]
+        for k, src, bar in spots:
+            r.blit(self.side_tex[k], bar, src)
         if sharp:
             k = max(1, math.ceil(d.w / WIDTH - 1e-6))
             if self.big is None or self.big.width != WIDTH * k:
@@ -138,6 +179,8 @@ class Display:
         surf = self.win.get_surface()
         surf.fill((0, 0, 0))
         d = self.dest()
+        for k, src, bar in self.side_spots(d):
+            surf.blit(pygame.transform.smoothscale(self.sides[k].subsurface(src), bar.size), bar)
         surf.blit(pygame.transform.smoothscale(canvas, d.size), d)
         for info, rect, shown in texts:
             img = self.text_image(info, lambda img: img)
