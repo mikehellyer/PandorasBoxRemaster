@@ -90,7 +90,7 @@ Official names from LANGENU.DLL 150-161. "Help file" is the quick-help RTF named
 | Jesse's Strips ✅ | JES, JESS | `PUZZLE.JES` + picture .JPG | see below | jesse.rtf | JES/ |
 | Slices | SLC, SLICE | `STATE.TXT` (text: per object `x y flip rot` + name), `OBJECT.WRL` (VRML 1.0), `nOBJ_m.PNG` + masks | 🟡 | 3dslices.rtf | SLICE/ |
 | Lens Bender | BGL | `PUZZLE.BGL` (INI `[BumpyGlass]`) + `PUZZLE_SPRn.PNG` + `TILE.PNG`; lens shapes in `BGL/<DIFF>_LENSn.RTRT/.RTRS` (precomputed ray-trace tables), layouts in `BGL/<DIFF>.INI` | 🟡 | bumpy.rtf | BGL/ |
-| Interlock | TRI, TAN | `PUZZLE.TRI` | `'trgm'` u32 1, ... (holds an author's D:\ path) ❓ | rigram.rtf | TRIGRAMS/ |
+| Interlock ✅ | TRI, TAN | `PUZZLE.TRI` | see below | rigram.rtf | TRIGRAMS/ |
 | Find and Fill | FNF, F&F | `PUZZLE.FNF` + photo .JPG; board `FNF/301.RIM` | `'fnf_'` u32 1, u32 1, ... (large: ~800 KB) ❓ | findfill.rtf | FNF/ |
 
 Other help RTFs in SCREEN.DAT: `hiseler.rtf`, `sheet.rtf` (two more types that were cut?).
@@ -235,3 +235,18 @@ Shapes: anchor + two steps; shape 0 straight, shape 1 L; steps by (rotation + sc
 `1: (0,1)(-1,0) | (-1,0)(0,-1) | (0,-1)(1,0) | (1,0)(0,1)`.
 Shown cells + pieces cover every cell in all 63 files; pieces overlap; anchors outside the picture
 show the background pattern.
+
+## ✅ PUZZLE.TRI (Interlock)
+
+`src/pbremaster/data/tri.py`; loader `0x5116e0`, shape `0x511e20`, piece `0x510eb0`.
+```
+'trgm', u32 1, u32 n + path[n] (picture), u32 shapes (1)
+shape: u32 n + name[n], COLORREF piece colour,
+       7 x { u32 type, u8 flip, i32 x, i32 y, i32 rotation }   solution
+       i32 w, h, w*h bytes (always 0x0), i32 ?, i32 ?, u32 triangle size
+7 x { u32 type, u8 flip, i32 x, i32 y, i32 rotation, i32 ?, i32 ?, u32 size }   start (newer than the Feb loader)
+```
+Equilateral triangle grid (0x511170): column step size/2, row height size*sqrt(3)/2; board triangle
+(x, y) points down when x + y is even. Pieces: table at `0x5b440c`, (type*6 + rotation)*2 + flip ->
+u8 w, u8 h, u8 first-points-down, w*h cells; dumped to `src/pbremaster/data/iamonds.py` by
+`tools/re/dump_iamonds.py` (shapes of 5,4,5,5,4,5,4 triangles = 32).

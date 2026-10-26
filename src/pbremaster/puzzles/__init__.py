@@ -7,8 +7,10 @@ from __future__ import annotations
 def game_for(kind_name):
     from .focuspoint import FocusPoint
     from .imagehole import ImageHole
+    from .interlock import Interlock
     from .jesse import JessesStrips
     from .overlap import Overlap
     from .rotascope import Rotascope
     return {"Focus Point": FocusPoint, "Rotascope": Rotascope, "Image Hole": ImageHole,
-            "Jesse's Strips": JessesStrips, "Overlap": Overlap}.get(kind_name)
+            "Jesse's Strips": JessesStrips, "Overlap": Overlap,
+            "Interlock": Interlock}.get(kind_name)

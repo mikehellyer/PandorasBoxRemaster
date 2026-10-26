@@ -148,3 +148,10 @@ moves there; arrows (OVER/BUTTONS.PNG) look through a stack. Sounds OVER/OL_SEL,
 OL_WRONG, OL_REORD, OL_DC.
 **Interpretation:** compartment/arrow placement and thumbnail size are measured from the art; the
 drop tolerance is "nearest cell".
+
+### Interlock ✅ (CTrigramsObject, `src/pbremaster/puzzles/interlock.py`)
+Texts LANGENU 12900-12903, hint 12950, buttons Flip 12101 / Rotate 12102. Pieces turn in 60 degree
+steps and flip; a piece sticks when it covers exactly its solution triangles. The picture is centred
+in the play area with the solution triangles blacked out (on Amsterdam 8 they cut out the lute player,
+which supports this reading); unplaced pieces use the file's colour.
+**Interpretation:** grid origin at the play area's corner, button positions.
