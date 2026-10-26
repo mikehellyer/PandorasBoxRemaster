@@ -6,4 +6,5 @@ from __future__ import annotations
 
 def game_for(kind_name):
     from .focuspoint import FocusPoint
-    return {"Focus Point": FocusPoint}.get(kind_name)
+    from .rotascope import Rotascope
+    return {"Focus Point": FocusPoint, "Rotascope": Rotascope}.get(kind_name)

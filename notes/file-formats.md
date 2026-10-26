@@ -84,7 +84,7 @@ Official names from LANGENU.DLL 150-161. "Help file" is the quick-help RTF named
 |---|---|---|---|---|---|
 | Image Hole | IMH, IHL | `PUZZLE.IMH` + photo .JPG + thumbnail .PNG | binary, ~230-350 bytes ❓ | imageqh.rtf | IMG/ |
 | Focus Point ✅ | FPN, ZOO | `PUZZLE.ZOO` | Zoommess file, see below | focalpt.rtf | FPN/ |
-| Rotascope | RTT, RTS | `PUZZLE.RTT` | `'MAP' 01` + GUID, or `'Zero'` + "New Puzzle" ❓ (two variants) | rotascop.rtf | RTT/ |
+| Rotascope ✅ | RTT, RTS | `PUZZLE.RTT` | `'Zero'` record (the tutorial wraps it in 'MAP'), see below | rotascop.rtf | RTT/ |
 | Overlap | OVL, FSH | `PUZZLE.FSH` | `'SFHP'`, u32 3, ... ❓ | overlaps.rtf | OVER/ |
 | Outer Layer | SKN, SKI | `3DSKIN.SKI` (INI) + `3DSKIN_SPRn.PNG` + `CAMERAn/{BACK.JPG, ADD.PNG, MULT.PNG, WARPER.DAT, WARPER.MAP}` | pre-rendered 3D, warp maps ❓ | 3dskins.rtf | 3DSKIN/ |
 | Jesse's Strips | JES, JESS | `PUZZLE.JES` + photo .JPG | binary, u32 size, u32 2, ... ❓ | jesse.rtf | JES/ |
@@ -174,3 +174,19 @@ then  the picture (JFIF JPEG), padding, 0x18-byte trailer
 - Data quirks on the CD: Athens 1's header is overwritten with pixel bytes; three JPEGs are truncated
   (libjpeg/pygame still decode them); Scalawag "City Place" stores homes 1 px low (snapped to slots);
   Monkey level puzzle 2's JPEG is 12 px wider than the board.
+
+## ✅ PUZZLE.RTT (Rotascope)
+
+`src/pbremaster/data/rtt.py`; loader `0x4efea0`, layout grid load `0x4f06f0`.
+```
+'Zero', u32 version 3, name\0 ("New Puzzle")
+u32 ?, u32 ?, COLORREF outline colour, u32 ?
+64 x (u8 ring, u8 sector)   grid[ring][sector]: the piece in each ring section, (255,255) = gap
+u8 ring, u8 sector          the piece in the centre                     } 10 bytes the Feb 2000
+u32 ?, u32 ?                                                            } loader does not read
+u32 start angle (degrees)   path\0   u32 jpeg size, JPEG
+```
+Disk configs (`0x5b2630`): 4 sectors x 2 rings, start 45, radius ratio 3; 5 x 3, 18, 2; 6 x 4, 30, 1.64.
+Outer radius min(w,h)/2 - 1 (<= 250); radii shrink inward by the ratio; the innermost radius is the
+centre disc (CCenterSection); ring sections are CRingSection(a0, a1, r_in, r_out) built at `0x4f0a00`.
+All 55 files fit exactly one config. The tutorial file wraps the record in a 'MAP' container.

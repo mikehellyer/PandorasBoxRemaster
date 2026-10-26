@@ -107,3 +107,12 @@ Click a piece, then another, to swap them; a piece in its own slot locks. Button
 (`0x4a12e9`): animation toggle id 3201 at (743,409), outline toggle 3202 at (743,467) - FPN/ANIM_*, GRID_*.
 Hint = place one piece; Free token = solve. Sounds FPN/FP_SEL, FP_DESEL, FP_MOVE, FP_LOCK, FP_MO are
 named in the June 2000 data, not in the Feb 2000 EUL, so when each plays is inferred.
+
+### Rotascope ✅ (CRotoscopeObject, `src/pbremaster/puzzles/rotascope.py`)
+Click a piece next to the gap to slide it in: neighbouring sector in the ring, same sector one ring
+in/out, or centre <-> any innermost sector. Pieces are drawn by mapping their home section of the
+picture onto the section they occupy, so they rotate and stretch. Solved: all home, gap in the centre
+(the centre of the picture is never shown). The board graph has triangles (centre + two inner sectors),
+so by Wilson's theorem every arrangement is solvable and hint swaps are safe. Hint (LANGENU 4312-4315):
+click a piece to send it home. Sounds RTT/RO_SPIN, RO_SB, RO_BS, RO_CLICK (when each plays is inferred).
+Interactive tutorial texts are LANGENU 4308-4311 (not used yet).
