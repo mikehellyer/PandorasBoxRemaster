@@ -88,7 +88,7 @@ Official names from LANGENU.DLL 150-161. "Help file" is the quick-help RTF named
 | Overlap ✅ | OVL, FSH | `PUZZLE.FSH` | see below | overlaps.rtf | OVER/ |
 | Outer Layer | SKN, SKI | `3DSKIN.SKI` (INI) + `3DSKIN_SPRn.PNG` + `CAMERAn/{BACK.JPG, ADD.PNG, MULT.PNG, WARPER.DAT, WARPER.MAP}` | pre-rendered 3D, warp maps ❓ | 3dskins.rtf | 3DSKIN/ |
 | Jesse's Strips ✅ | JES, JESS | `PUZZLE.JES` + picture .JPG | see below | jesse.rtf | JES/ |
-| Slices | SLC, SLICE | `STATE.TXT` (text: per object `x y flip rot` + name), `OBJECT.WRL` (VRML 1.0), `nOBJ_m.PNG` + masks | 🟡 | 3dslices.rtf | SLICE/ |
+| Slices ✅ | SLC, SLICE | `STATE.TXT`, `OBJECT.WRL` (VRML 1.0), `<n>OBJ_<v>.PNG` + masks | see below | 3dslices.rtf | SLICE/ |
 | Lens Bender | BGL | `PUZZLE.BGL` (INI `[BumpyGlass]`) + `PUZZLE_SPRn.PNG` + `TILE.PNG`; lens shapes in `BGL/<DIFF>_LENSn.RTRT/.RTRS` (precomputed ray-trace tables), layouts in `BGL/<DIFF>.INI` | 🟡 | bumpy.rtf | BGL/ |
 | Interlock ✅ | TRI, TAN | `PUZZLE.TRI` | see below | rigram.rtf | TRIGRAMS/ |
 | Find and Fill ✅ | FNF, F&F | `PUZZLE.FNF` + photo .JPG; left column `FNF/301.RIM` | see below | findfill.rtf | FNF/ |
@@ -274,4 +274,23 @@ Boards: 500x500 (11), 400x400, 350x350, 250x250 ... and strips up to 1256x430. F
 stale bytes after the board (an older, larger save written over in place; Moscow 4: a 330x330 board,
 then the tail of a 400x400 one). On the board each object is turned and scaled (area ratios 1 to 15);
 neither per-object double predicts the turn, so the game fits it (see game-logic.md).
+
+## ✅ Slices folder (CLambChopsObject)
+
+`src/pbremaster/data/slc.py`; loader around `0x4c3950` (`object.wrl`, `state.txt`, `%dobj`, `wobj`).
+```
+OBJECT.WRL   VRML 1.0: 4 SpotLights; per piece DEF <n>obj Separator { MatrixTransform { matrix
+             4x4 row vectors } Separator { Coordinate3 { point [8 box corners] } Normal ...
+             IndexedFaceSet } }; last DEF wobj = box round the whole object
+STATE.TXT    per piece: floor x, floor z, flip, turn (some entries give fewer numbers), name
+<n>OBJ_<v>.PNG / <n>OBJ_<v>A.PNG   piece pre-rendered in view v = flip*4 + turn + 1, mask black = solid
+WOBJ_<v>     the whole object; SLICE/BACKGROUND.PNG the 648x540 checkerboard table
+```
+Views: the object turned `turn` quarter turns about y, then if flipped half over about x. Camera
+(mouse-to-floor pick at `0x4c5d00`): orthographic, view direction (-2,-1,-2)/3, up (-1,4,-1)/(3 sqrt 2),
+view height 14 units per 480 px (`0x4c9778`: client height / 480 * 14), floor y = -0.48, floor x, z in
+-10..10 mapped to a 10x10 grid. Sprites are centred on their box centre's projection: compositing the
+pieces this way rebuilds WOBJ's silhouette at 0.985-0.99 overlap in all 8 views (Eris puzzle 1).
+Every PNG has odd width and height (rendered round the centre). Boxes touching within 0.05 units link
+every puzzle's pieces into one connected graph.
 

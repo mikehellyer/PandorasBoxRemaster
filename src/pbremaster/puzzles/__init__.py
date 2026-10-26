@@ -12,6 +12,8 @@ def game_for(kind_name):
     from .jesse import JessesStrips
     from .overlap import Overlap
     from .rotascope import Rotascope
+    from .slices import Slices
     return {"Focus Point": FocusPoint, "Rotascope": Rotascope, "Image Hole": ImageHole,
             "Jesse's Strips": JessesStrips, "Overlap": Overlap,
-            "Interlock": Interlock, "Find and Fill": FindAndFill}.get(kind_name)
+            "Interlock": Interlock, "Find and Fill": FindAndFill,
+            "Slices": Slices}.get(kind_name)

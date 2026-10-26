@@ -173,3 +173,15 @@ found, pictures whose objects are all found drop out; palette and arrow position
 are UPARROW turned), boards that fit are scaled up to fill the 540x540 view, larger ones scroll
 (arrows, wheel, shift+wheel), outline colour, and the found picture: the sprite turned and scaled by
 a fit to its cells (whole degrees, scale from the extent), as the file's fields didn't give it.
+
+### Slices ✅ (CLambChopsObject, `src/pbremaster/puzzles/slices.py`)
+Texts LANGENU 10900-10905 (select, drag, drag onto another piece to connect: both must face the same
+direction; right-click rotates; flip), hint 10910, buttons Flip 10100 / Rotate 10101-10102 / Animate
+10103. Pieces stand on the checkerboard in the original's camera (file-formats.md); a group keeps its
+pieces' places in the assembled object and is drawn far-to-near by depth along (2,1,2). Drop a group
+on another facing the same way and they join if one piece of each touches in the object; otherwise
+SL_WRONG and it goes back. Right-click / ROTATEP turns a quarter, FLIPP flips, REVLF/REVRT turn the
+whole table, ANIM spins the selected (or solved) group. Solved when one group holds every piece.
+**Interpretation:** the touching rule (the original may join any two pieces facing the same way),
+turning about the group's centre, groups standing on the floor by their lowest box, hint = bring one
+touching piece into the clicked piece's group, button positions, HI_SQUARE_1 under the selection.
