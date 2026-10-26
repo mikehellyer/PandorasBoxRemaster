@@ -261,3 +261,45 @@ def test_success_view_shows_finished_puzzle(app):
     assert app.view is puzzle_view                                  # stays until a click
     click_at(app, (400, 300))
     assert app.view.id == 500 and puzzle.number in app.player.solved[city.path]
+
+
+def solve_speed_puzzle(app, city_name, hint=False):
+    level = app.levels[2]
+    city = level.cities[city_name]
+    app.enter_city(city)
+    puzzle = next(p for p in city.puzzles.values() if p.time_limit)
+    slot = next(cid for cid, p in app.view.scene.slots.items() if p is puzzle)
+    app.open_puzzle(level, city, puzzle, slot_id=slot)
+    assert app.active().id == 900 and "speed puzzle" in " ".join(app.active().scene.lines)
+    click(app, 1200)
+    if hint:
+        app.view.scene.used_hint = True
+    ev(app, pygame.KEYDOWN, key=pygame.K_F9, unicode="", mod=0)
+    tick(app, 20)
+    click(app, 131)                                   # Continue on the success box
+    return city
+
+
+def test_speed_puzzle_bonuses(app):
+    new_player(app)
+    app.player_ready()
+    app.player.level = 2
+
+    city = solve_speed_puzzle(app, "CITY.13.LONDON")
+    assert app.active().id == 900 and "location of the hidden object" in " ".join(app.active().scene.lines)
+    assert city.path in app.player.revealed
+    click(app, 1200)
+    app.draw()                                        # the piece icon on the hiding puzzle's button
+
+    lusaka = app.levels[2].cities["CITY.14.LUSAKA"]
+    app.player.pieces.append(lusaka.path)             # piece already found: tokens instead
+    free = app.player.free
+    solve_speed_puzzle(app, "CITY.14.LUSAKA")
+    assert "three Free Puzzle tokens" in " ".join(app.active().scene.lines)
+    assert app.player.free == free + 3
+    click(app, 1200)
+
+    free = app.player.free
+    city = solve_speed_puzzle(app, "CITY.24.PHILADELPHIA", hint=True)
+    assert city.path not in app.player.revealed and app.player.free == free
+    assert not app.dialogs or "beat the clock" not in " ".join(getattr(app.active().scene, "lines", []))

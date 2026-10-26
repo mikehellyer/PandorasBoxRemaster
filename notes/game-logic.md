@@ -266,3 +266,12 @@ Jesse's "press 4" steps wait for that tray. Image Hole's strike text 2057 shows 
 Jesse's Strips opens on the last tray with strips (the tutorial's "then return to tray 5"; campaign
 puzzles leave tray 1 empty).
 
+### Speed puzzles (TIME.<n>.<secs>, one per campaign city)
+Opening one shows LANGENU 1035 ("To earn a bonus, solve this speed puzzle in under %s. If you use a Hint
+or Free Puzzle token, you will not receive a bonus."); the timer counts down. Solved within the limit
+without a Hint or Free token (and for the first time), the bonus (0x403fe9) is: if the city's piece is
+neither found nor already shown, the city is marked revealed (player set at +0xdd8) and 1036 says the
+hidden object's location is shown on a puzzle button; otherwise Free Puzzle tokens (+0xee8) and 1037
+("three Free Puzzle tokens"). **Interpretation:** the revealed marker (the city's piece icon as a badge
+on the piece puzzle's button), and three tokens as 1037 says (only one increment was traced).
+

@@ -448,8 +448,12 @@ class App:
         screen = world.KIND_SCREEN.get(puzzle.kind_name, 2000)
         # Challenge puzzles use the gold-trimmed frame (0x438960 loads 300f.bmp, mode 4)
         view = widgets.ScreenView(self.ui, screen, background="300f.bmp" if master else None)
-        campaign.PuzzleScene(self, view, level, city, puzzle, master=master, slot_id=slot_id, only=only)
+        scene = campaign.PuzzleScene(self, view, level, city, puzzle, master=master, slot_id=slot_id, only=only)
         self.push(view)
+        if scene.limit and not (master or only or level.number == 0):
+            # LANGENU 1035: "To earn a bonus, solve this speed puzzle in under %s ..."
+            text = self.strings.get(1035, "").replace("%s", campaign.clock(scene.limit))
+            self.message(text)
 
     def leave_puzzle(self, scene):
         self.back()
@@ -469,7 +473,8 @@ class App:
                 p.solved[scene.city.path].append(scene.puzzle.number)
             events = ["practice"]
         else:
-            events = p.solve(scene.city, scene.puzzle, used_free)
+            beat = bool(scene.limit) and scene.elapsed <= scene.limit and not used_free and not scene.used_hint
+            events = p.solve(scene.city, scene.puzzle, used_free, beat_clock=beat)
         if not used_free:                             # best times for the Gallery
             from ..game import besttimes
             p.record_time(scene.puzzle.path, scene.elapsed)
@@ -505,6 +510,14 @@ class App:
         if "practice" in events:
             self.message(self.strings.get(1029, ""))
             return
+        for ev, sid in (("revealed", 1036), ("speed_tokens", 1037)):
+            if ev in events:                        # the speed bonus first, then the rest
+                rest = [e for e in events if e != ev]
+                self.sounds.play("INCWC1" if ev == "speed_tokens" else "INCHINT1")
+                if self.view.scene and hasattr(self.view.scene, "refresh"):
+                    self.view.scene.refresh()
+                self.message(self.strings.get(sid, ""), (1200,), lambda r: self.after_success(scene, rest))
+                return
         if "only" in events:
             return                                  # back on the Puzzles Only list
         for ev, sound in (("token", "INCWC1"), ("wildcard", "INCWC1"), ("hint", "INCHINT1")):

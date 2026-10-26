@@ -18,6 +18,7 @@ from pathlib import Path
 from ..settings import data_dir
 
 TOKEN_EVERY = 10
+SPEED_TOKENS = 3            # a speed puzzle beaten when the city's piece is already known (LANGENU 1037)
 MASTER_FREE_COST = 3        # a Challenge puzzle costs three Free Puzzle tokens (0x436430, LANGENU 1041)
 PIECES_PER_LEVEL = 5
 
@@ -30,6 +31,7 @@ class Player:
     last_city: str | None = None         # the city last visited: "Current location" on the map
     solved: dict[str, list[int]] = field(default_factory=dict)   # "LEVEL.01.MAUI/CITY.06.CAIRO" -> numbers
     pieces: list[str] = field(default_factory=list)              # city paths whose piece was found
+    revealed: list[str] = field(default_factory=list)            # city paths whose piece puzzle a speed bonus showed
     master_solved: dict[str, list[int]] = field(default_factory=dict)
     captured: list[int] = field(default_factory=list)            # levels whose trickster is captured
     videos_seen: list[int] = field(default_factory=list)         # levels whose intro video was shown
@@ -56,9 +58,12 @@ class Player:
         return [p for p in self.pieces if p.startswith(level_path + "/")]
 
     # --------------------------------------------------------------- rules
-    def solve(self, city, puzzle, used_free=False) -> list[str]:
+    def solve(self, city, puzzle, used_free=False, beat_clock=False) -> list[str]:
         """Record a solved city puzzle; returns the events it caused, in order:
-        'token', 'hint', 'wildcard', 'piece', 'challenge', 'city_done'."""
+        'token', 'hint', 'wildcard', 'piece', 'challenge', 'revealed' / 'speed_tokens', 'city_done'.
+        beat_clock: a speed puzzle (TIME.<n>.<secs>) solved in time without a Hint or Free token;
+        it shows where the city's piece is hidden, or (piece already found or shown) gives
+        three Free Puzzle tokens (0x403fe9: string 1036 or 1037)."""
         events = []
         done = self.solved.setdefault(city.path, [])
         if puzzle.number in done:
@@ -84,6 +89,13 @@ class Player:
             level_path = city.path.split("/")[0]
             if len(self.level_pieces(level_path)) >= PIECES_PER_LEVEL:
                 events.append("challenge")
+        if beat_clock and puzzle.time_limit:
+            if city.path not in self.pieces and city.path not in self.revealed:
+                self.revealed.append(city.path)
+                events.append("revealed")
+            else:
+                self.free += SPEED_TOKENS
+                events.append("speed_tokens")
         if len(done) >= len(city.puzzles):
             events.append("city_done")
         return events

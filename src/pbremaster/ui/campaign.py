@@ -312,8 +312,24 @@ class CityScene(Scene):
             if self.view[cid].hover:
                 pygame.draw.rect(surf, TEXT, rect.inflate(2, 2), 1)
 
+    def piece_icon(self):
+        k = self.app.city_slot(self.level, self.city)
+        frames = self.frames(f"150{self.level.number - 1}{k}f.bmp", 4)
+        return frames[3] if frames else None
+
     def draw_front(self, surf):
         p = self.app.player
+        if not self.practice and self.city.path in p.revealed and self.city.path not in p.pieces:
+            # A speed bonus showed which puzzle hides the piece (LANGENU 1036): its icon on that
+            # button until it is solved. **Interpretation:** the original's marker is not known.
+            icon = self.piece_icon()
+            for cid, pz in self.slots.items():
+                if pz.piece and not self.solved(pz) and icon is not None:
+                    r = self.view[cid].rect
+                    w = int(r.w * 0.55)
+                    img = pygame.transform.scale(icon, (w, int(icon.get_height() * w / icon.get_width())))
+                    img.set_colorkey((0, 0, 0))
+                    surf.blit(img, img.get_rect(bottomright=(r.right + 6, r.bottom + 4)))
         if not self.practice and self.city.path in p.pieces:
             slot = self.view.by_id.get(519)
             k = self.app.city_slot(self.level, self.city)
@@ -362,6 +378,7 @@ class PuzzleScene(Scene):
         self.used_free = False
         self.done_for = None
         self.finished = False           # puzzle_solved has run: the success box is up
+        self.used_hint = False          # a Hint cancels a speed puzzle's bonus (LANGENU 1035)
         self.viewing = None             # after View: what to do when the player clicks on
         cls = game_for(puzzle.kind_name)
         self.game = cls(app, puzzle) if cls else None
@@ -398,6 +415,7 @@ class PuzzleScene(Scene):
             if self.game.hint_done:
                 self.game.hint_done = False
                 self.app.player.hints -= 1
+                self.used_hint = True
                 self.app.save_player()
                 self.app.sounds.play("USEHINT")
             if self.game.solved:
