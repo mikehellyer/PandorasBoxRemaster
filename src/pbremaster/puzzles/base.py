@@ -40,6 +40,8 @@ class PuzzleGame:
         self.app, self.puzzle = app, puzzle
         self.solved = False
         self.paused = False
+        self.hint_mode = False     # Hint pressed: the next click picks the piece to place
+        self.hint_done = False     # set when a hint has been used (the scene charges it)
         self.buttons: list[ToggleButton] = []
 
     # helpers
@@ -85,7 +87,8 @@ class PuzzleGame:
         pass
 
     def use_hint(self) -> bool:
-        """Place one piece correctly; False if there is nothing to place."""
+        """Start hint mode (the player then clicks the piece to place, as in the
+        original: LANGENU 2052/3318/4313); False if there is nothing to place."""
         return False
 
     def complete(self):

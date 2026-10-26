@@ -160,6 +160,7 @@ class Rotascope(PuzzleGame):
         home = piece
         self.at[pos], self.at[home] = self.at[home], piece
         self.sound("RO_CLICK")
+        self.hint_done = True
         self.check()
         return True
 

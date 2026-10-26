@@ -65,7 +65,11 @@ def test_clicks_and_hint(app):
     assert g.selected == a
     g.mouse_down(pb)
     assert g.selected is None and g.where[a] == g.data.slots[b]
+    g.update(1.0)                                   # let the swap animation finish
     before = sum(g.locked)
-    assert g.use_hint() and sum(g.locked) > before
+    assert g.use_hint() and g.hint_mode
+    k = next(k for k in range(len(g.where)) if not g.locked[k])
+    g.mouse_down(centre(k))                         # click the piece to place
+    assert g.locked[k] and g.hint_done and sum(g.locked) > before
     g.complete()
     assert g.solved

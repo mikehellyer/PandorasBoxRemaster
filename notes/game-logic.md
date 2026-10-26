@@ -116,3 +116,17 @@ picture onto the section they occupy, so they rotate and stretch. Solved: all ho
 so by Wilson's theorem every arrangement is solvable and hint swaps are safe. Hint (LANGENU 4312-4315):
 click a piece to send it home. Sounds RTT/RO_SPIN, RO_SB, RO_BS, RO_CLICK (when each plays is inferred).
 Interactive tutorial texts are LANGENU 4308-4311 (not used yet).
+
+### Image Hole ✅ (CImageHoleObject, `src/pbremaster/puzzles/imagehole.py`)
+Texts LANGENU 2052-2057, 2002 (three strikes restart), sounds IMG/IM_SEL, IM_MOVE, IM_RIGHT, IM_X, IM_FAIL
+(LANGENU 2015-2019). Controls placed at `0x4a8f30`: strike icon (737,348), strike holes (740,404), pegs at
+x 739/760/781, one speed cycle button (slow/medium/fast, LANGENU 2600-2602) at (748,429).
+**Interpretation (not traced in code):** the picture is shown with every unlocked hole's place filled
+with the fill colour; holes are outlined windows onto the picture drifting around; select a hole,
+click the background to send it, click it again to lock. Lock succeeds within 10 px of its place's
+centre; hole speed = speed x 6 px/s x (0.5/1/2). These three numbers are guesses to check against the
+original.
+
+### Hints (all types)
+Hint arms a hint mode; the next click on a piece/hole places it (LANGENU 2052, 3318, 4313); clicking
+Hint again cancels without using it. Focus Point also uses this now.

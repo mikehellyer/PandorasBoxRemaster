@@ -384,6 +384,11 @@ class PuzzleScene(Scene):
     def update(self, dt):
         if self.game:
             self.game.update(dt)
+            if self.game.hint_done:
+                self.game.hint_done = False
+                self.app.player.hints -= 1
+                self.app.save_player()
+                self.app.sounds.play("USEHINT")
             if self.game.solved:
                 self.done_for = (self.done_for or 0.0) + dt
                 if self.done_for >= self.SOLVED_PAUSE:
@@ -452,8 +457,10 @@ class PuzzleScene(Scene):
                 app.sounds.play(app.sounds.NO_CLICK)
         elif cid == 307:
             button.on = False
-            if self.game and app.player.hints > 0 and not self.busy():
-                app.confirm(app.strings.get(1002, ""), self.use_hint)
+            if self.game and self.game.hint_mode:          # pressed again: cancel
+                self.game.hint_mode = False
+            elif self.game and app.player.hints > 0 and not self.busy():
+                app.confirm(app.strings.get(1002, ""), self.game.use_hint)
             else:
                 app.sounds.play(app.sounds.NO_CLICK)
         else:
@@ -466,12 +473,6 @@ class PuzzleScene(Scene):
             self.game.complete()
         else:
             self.app.puzzle_solved(self, used_free=True)
-
-    def use_hint(self):
-        if self.game.use_hint():
-            self.app.player.hints -= 1
-            self.app.save_player()
-            self.app.sounds.play("USEHINT")
 
     def restart(self):
         self.elapsed = 0.0

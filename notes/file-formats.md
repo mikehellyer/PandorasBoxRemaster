@@ -82,7 +82,7 @@ Official names from LANGENU.DLL 150-161. "Help file" is the quick-help RTF named
 
 | Name | Folder suffix | Data file | Header / notes | Help file | Sounds |
 |---|---|---|---|---|---|
-| Image Hole | IMH, IHL | `PUZZLE.IMH` + photo .JPG + thumbnail .PNG | binary, ~230-350 bytes ❓ | imageqh.rtf | IMG/ |
+| Image Hole ✅ | IMH, IHL | `PUZZLE.IMH` + 650x540 picture .JPG + hole mask .PNG (.BMP on 4 Scalawag puzzles) | see below | imageqh.rtf | IMG/ |
 | Focus Point ✅ | FPN, ZOO | `PUZZLE.ZOO` | Zoommess file, see below | focalpt.rtf | FPN/ |
 | Rotascope ✅ | RTT, RTS | `PUZZLE.RTT` | `'Zero'` record (the tutorial wraps it in 'MAP'), see below | rotascop.rtf | RTT/ |
 | Overlap | OVL, FSH | `PUZZLE.FSH` | `'SFHP'`, u32 3, ... ❓ | overlaps.rtf | OVER/ |
@@ -190,3 +190,16 @@ Disk configs (`0x5b2630`): 4 sectors x 2 rings, start 45, radius ratio 3; 5 x 3,
 Outer radius min(w,h)/2 - 1 (<= 250); radii shrink inward by the ratio; the innermost radius is the
 centre disc (CCenterSection); ring sections are CRingSection(a0, a1, r_in, r_out) built at `0x4f0a00`.
 All 55 files fit exactly one config. The tutorial file wraps the record in a 'MAP' container.
+
+## ✅ PUZZLE.IMH (Image Hole)
+
+`src/pbremaster/data/imh.py`; loader `0x4ace50`.
+```
+u32 ?, u32 version (1/2), u32 holes, COLORREF fill, COLORREF outline
+title\0  picture.jpg\0  mask.bmp\0   (the CD ships the mask as .PNG on most puzzles)
+holes x 58: u8 ?, f32 scale (0.5-1.4), f32 0, f32 speed (3-21), u8 starts-locked,
+            RECT place, POINT home (= place top-left), POINT start, POINT direction, COLORREF mask key
+version 2: u32 0
+```
+The JPG is the whole 650x540 play area (frame included); the mask image marks each hole's shape in its
+own colour on blue.

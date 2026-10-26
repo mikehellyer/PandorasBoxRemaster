@@ -12,8 +12,6 @@ Sounds: FPN/FP_SEL, FP_DESEL, FP_MOVE, FP_LOCK, FP_MO.
 """
 from __future__ import annotations
 
-import random
-
 import pygame
 
 from ..data import zoo
@@ -90,6 +88,15 @@ class FocusPoint(PuzzleGame):
         i = self.piece_at(pos)
         if i is None:
             return False
+        if self.hint_mode:                      # LANGENU 3318: click the piece to place
+            if self.locked[i]:
+                self.app.sounds.play(self.app.sounds.NO_CLICK)
+                return True
+            self.hint_mode = False
+            self.selected = None
+            self.swap(i, self.where.index(self.data.homes[i]))
+            self.hint_done = True
+            return True
         if self.locked[i]:
             self.app.sounds.play(self.app.sounds.NO_CLICK)
         elif self.selected is None:
@@ -104,13 +111,10 @@ class FocusPoint(PuzzleGame):
         return True
 
     def use_hint(self):
-        wrong = [i for i in range(len(self.where)) if not self.locked[i]]
-        if not wrong:
+        if self.solved:
             return False
-        i = random.choice(wrong)
-        j = self.where.index(self.data.homes[i])
+        self.hint_mode = True
         self.selected = None
-        self.swap(i, j)
         return True
 
     def complete(self):
@@ -160,3 +164,7 @@ class FocusPoint(PuzzleGame):
         elif self.hover is not None and not self.moving:
             r = pygame.Rect(self.where[self.hover]).move(ox, oy)
             pygame.draw.rect(surf, (200, 150, 90), r, 1)
+        if self.hint_mode:
+            text = self.app.strings.get(3318, "").replace("\r", " ")
+            img = self.app.fonts.get(16).render(text, True, (248, 176, 100))
+            surf.blit(img, img.get_rect(midbottom=(AREA.centerx, AREA.bottom - 6)))
