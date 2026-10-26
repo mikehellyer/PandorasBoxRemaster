@@ -327,7 +327,8 @@ class App:
 
     def open_puzzle(self, level, city, puzzle, master=False, slot_id=None):
         screen = world.KIND_SCREEN.get(puzzle.kind_name, 2000)
-        view = widgets.ScreenView(self.ui, screen)
+        # Challenge puzzles use the gold-trimmed frame (0x438960 loads 300f.bmp, mode 4)
+        view = widgets.ScreenView(self.ui, screen, background="300f.bmp" if master else None)
         campaign.PuzzleScene(self, view, level, city, puzzle, master=master, slot_id=slot_id)
         self.push(view)
 

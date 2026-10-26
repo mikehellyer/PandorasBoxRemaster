@@ -18,6 +18,7 @@ from pathlib import Path
 from ..settings import data_dir
 
 TOKEN_EVERY = 10
+MASTER_FREE_COST = 3        # a Challenge puzzle costs three Free Puzzle tokens (0x436430, LANGENU 1041)
 PIECES_PER_LEVEL = 5
 
 
@@ -83,7 +84,7 @@ class Player:
         if puzzle.number not in done:
             done.append(puzzle.number)
             if used_free:
-                self.free -= 1
+                self.free -= MASTER_FREE_COST
         if len(done) >= len(level.puzzles) and level.number not in self.captured:
             self.captured.append(level.number)
             return ["captured"]

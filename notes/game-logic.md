@@ -225,3 +225,9 @@ puzzle's hint mode; one is charged when the hint is used. With none the original
 click (STATENU 307: "If you have earned Hints, click to receive a Hint"). **Modern addition:** with no
 Hints the remaster shows a short message (campaign.NO_HINTS) saying so and how Hints are earned.
 
+### Free Puzzle tokens
+Free (306, handler 0x436430) asks LANGENU 1001 and solves the puzzle for one token. In the Challenge
+(mode 4, the screen built by 0x438960 on the gold-trimmed 300F.RIM) it costs three: LANGENU 1041 asks,
+and with fewer than three 1042 says to earn more in this level's cities. **Modern addition:** with no
+tokens on a normal puzzle the remaster shows campaign.NO_TOKENS instead of only the "no" click.
+

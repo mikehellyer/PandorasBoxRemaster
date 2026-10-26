@@ -20,6 +20,7 @@ import pygame
 
 from ..data import screens as sd
 from ..game import world
+from ..game.progress import MASTER_FREE_COST
 from . import widgets
 from .video import RECT as VIDEO_RECT
 from .video import Video
@@ -453,10 +454,18 @@ class PuzzleScene(Scene):
         elif cid == 304:
             app.confirm(app.strings.get(1030, ""), self.restart)
         elif cid == 306:
-            if app.player.free > 0 and not self.busy():
+            free = app.player.free
+            if self.busy():
+                app.sounds.play(app.sounds.NO_CLICK)
+            elif self.master:                          # 0x436430 in mode 4: three tokens
+                if free >= MASTER_FREE_COST:
+                    app.confirm(app.strings.get(1041, ""), self.use_free)
+                else:
+                    app.message(app.strings.get(1042, ""))
+            elif free > 0:
                 app.confirm(app.strings.get(1001, ""), self.use_free)
             else:
-                app.sounds.play(app.sounds.NO_CLICK)
+                app.message(NO_TOKENS)                 # modern: the original only clicks "no"
         elif cid == 307:
             button.on = False
             if self.game and self.game.hint_mode:          # pressed again: cancel
@@ -527,6 +536,9 @@ def success_view(ui):
 
 # --------------------------------------------------------------- message box
 # Not in the original (it only plays the "no" click); the wording follows its quick help.
+NO_TOKENS = ("You have no Free Puzzle tokens yet.\n"
+             "Earn one for every 10 puzzles you solve; more are hidden behind random puzzles. "
+             "Then click Free to solve a puzzle automatically.")
 NO_HINTS = ("You have no Hints yet.\n"
             "Hints are hidden behind random puzzles. Keep solving puzzles to find them, "
             "then click Hint to place a piece automatically.")

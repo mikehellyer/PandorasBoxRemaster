@@ -131,3 +131,37 @@ def test_hint_with_none_explains(app):
     click(app, 307)
     click(app, 1201)                                  # Yes
     assert app.view.scene.game.hint_mode
+
+
+def test_free_with_none_explains(app):
+    new_player(app)
+    app.player_ready()
+    level = app.levels[1]
+    city = level.cities["CITY.06.CAIRO"]
+    app.player.free = 0
+    app.open_puzzle(level, city, next(iter(city.puzzles.values())))
+    click(app, 306)                                   # Free with none: a short explanation
+    assert app.dialogs and "no Free Puzzle tokens" in " ".join(app.active().scene.lines)
+    click(app, 1200)
+    assert not app.dialogs
+
+
+def test_challenge_free_costs_three(app):
+    new_player(app)
+    app.player_ready()
+    level = app.levels[1]
+    app.player.free = 2
+    app.start_master(level)
+    scene = app.view.scene
+    assert scene.master
+    plain = app.ui.assets.image("SCREENS/300.RIM")
+    assert app.view.background.get_at((60, 300)) != plain.get_at((60, 300))     # the 300F frame
+    click(app, 306)                                   # two tokens: "You need three ..."
+    assert app.dialogs and "three" in " ".join(app.active().scene.lines)
+    click(app, 1200)
+    app.player.free = 4
+    click(app, 306)
+    assert "three" in " ".join(app.active().scene.lines)
+    click(app, 1201)                                  # Yes: use them
+    tick(app, 20)
+    assert app.player.free == 1
