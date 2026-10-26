@@ -1,9 +1,8 @@
-"""pbremaster: the game window and the menu screens.
+"""pbremaster: the game window, the menus and the campaign flow.
 
 Navigation follows PANDORA.EUL: buttons run the command registered for their
 id (table at 0x5d4100, extracted by tools/re/commands.py), show a screen, or end
-a dialog. Screens the remaster does not play yet (world map, cities, puzzles)
-are shown with working Back / Menu / Quick Help buttons.
+a dialog. Screens with code-drawn content get a Scene (ui/campaign.py).
 """
 from __future__ import annotations
 
@@ -19,9 +18,12 @@ from ..data import screens as sd
 from ..data.assets import Assets
 from ..data.rof import ROF
 from ..data.strings import load_strings
+from ..game import world
+from ..game.progress import Player
 from ..settings import Settings
-from . import widgets
+from . import campaign, widgets
 from .media import Fonts, Sounds
+from .music import Music
 
 WIDTH, HEIGHT = 800, 600
 
@@ -29,6 +31,10 @@ WIDTH, HEIGHT = 800, 600
 MAIN, LOAD_DLG, SAVE_DLG, OPTIONS_DLG = 100, 101, 102, 103
 PUZZLES_ONLY, WORLD_MAP, CITY, PRACTICE_CITY, GALLERY = 150, 400, 500, 501, 600
 CREDITS, ABOUT = 1998, 1202
+LAST_LEVEL = 7          # level 8 (Scalawag) is not wired up yet
+
+# Dialog results (button action 15)
+OK, CANCEL, YES, NO, MAP_, STAY, CAPTURE = 1, 2, 6, 7, 16, 17, 18
 
 # Puzzle-type radio buttons on the Puzzles Only screen (150-161) -> kind name.
 TYPE_BUTTONS = {150: "Image Hole", 151: "Focus Point", 152: "Rotascope", 153: "Overlap",
@@ -81,34 +87,38 @@ class DropMenu:
             surf.blit(self.font.render(text, True, colour), (r.x + 14, r.y + 3))
 
 
-class TextScreen:
-    """Credits / About: the PNG backdrops named in SCREEN.DAT are not on the CD,
-    so the text is drawn on a plain dialog frame with the screen's OK button."""
+class TextScene(campaign.Scene):
+    """Credits (CREDITS1, text from CREDITS.DAT, %B = bold) and About (ABOUT1):
+    black framed pages whose text the game draws in code. Text that does not
+    fit scrolls upwards above the box in the corner."""
+    SPEED = 22          # pixels per second
 
-    def __init__(self, view: widgets.ScreenView, lines, fonts):
-        self.view, self.lines, self.fonts = view, lines, fonts
-        self.box = pygame.Rect(0, 0, 520, 520)
-        self.box.center = (WIDTH // 2, HEIGHT // 2)
-        for w in view.widgets:
-            w.rect.topleft = (self.box.centerx - w.rect.w // 2, self.box.bottom - w.rect.h - 14)
+    def __init__(self, app, view, lines):
+        super().__init__(app, view)
+        self.lines = lines
+        self.offset = 0.0
+        r = view.rect
+        self.area = pygame.Rect(r.x + 20, r.y + 22, r.w - 40, r.h - 22 - 190)
+        self.height = sum(18 if line.replace("%B", "") else 8 for line in lines)
 
-    def draw(self, surf):
-        pygame.draw.rect(surf, (40, 18, 6), self.box)
-        pygame.draw.rect(surf, (248, 176, 100), self.box, 2)
-        y = self.box.y + 18
+    def update(self, dt):
+        if self.height > self.area.h:
+            self.offset = (self.offset + dt * self.SPEED) % (self.height + self.area.h)
+
+    def draw_front(self, surf):
+        clip = surf.get_clip()
+        surf.set_clip(self.area)
+        scrolling = self.height > self.area.h
+        y = self.area.y + (self.area.h - self.offset if scrolling else 0)
         for line in self.lines:
-            bold = line.startswith("%B")
+            bold = "%B" in line
             text = line.replace("%B", "")
-            f = self.fonts.get(15, bold=bold)
-            colour = (248, 176, 100) if bold else (236, 220, 190)
             if text:
-                img = f.render(text, True, colour)
-                surf.blit(img, (self.box.centerx - img.get_width() // 2, y))
+                f = self.app.fonts.get(15, bold=bold)
+                img = f.render(text, True, (248, 176, 100) if bold else (236, 220, 190))
+                surf.blit(img, (self.area.centerx - img.get_width() // 2, y))
             y += 18 if text else 8
-            if y > self.box.bottom - 70:
-                break
-        for w in self.view.widgets:
-            w.draw(surf)
+        surf.set_clip(clip)
 
 
 class App:
@@ -119,15 +129,18 @@ class App:
         self.assets = Assets(game)
         self.fonts = Fonts(game)
         self.sounds = Sounds(game, settings)
+        self.music = Music(game, settings)
         self.strings = load_strings(game.file("LANGENU.DLL"))
+        self.status = load_strings(game.file("STATENU.DLL"))
         self.names = load_strings(game.file("NAMEENU.DLL"))
+        self.credits = load_strings(game.file("PUZENU.DLL"))
         layout = sd.parse(self.assets.raw("SCREENS/SCREEN.DAT"))
         self.ui = widgets.UI(self.assets, self.fonts, self.sounds, self.strings, layout)
         self.levels = catalogue.load(ROF(game.file("PANDORA.ROF")))
+        self.player: Player | None = None
         self.stack: list[widgets.ScreenView] = []
         self.dialogs: list[tuple[widgets.ScreenView, callable]] = []
         self.menu: DropMenu | None = None
-        self.text_screen: TextScreen | None = None
         self.running = True
         self.show(MAIN)
 
@@ -136,9 +149,18 @@ class App:
     def view(self) -> widgets.ScreenView:
         return self.stack[-1]
 
+    def push(self, view):
+        self.stack.append(view)
+        self.enter(view)
+        return view
+
+    def replace(self, view):
+        self.stack[-1] = view
+        self.enter(view)
+        return view
+
     def show(self, screen_id):
-        self.stack.append(widgets.ScreenView(self.ui, screen_id))
-        self.enter(self.view)
+        return self.push(widgets.ScreenView(self.ui, screen_id))
 
     def back(self):
         if len(self.stack) > 1:
@@ -146,22 +168,28 @@ class App:
             self.enter(self.view)
 
     def main_screen(self):
+        self.dialogs.clear()
         self.stack = self.stack[:1]
         self.enter(self.view)
 
     def enter(self, view):
-        if view.id == MAIN:
+        if view.scene:
+            view.scene.enter()
+        elif view.id == MAIN:
             self.refresh_players(view)
+            self.music.theme("MUSIC/MAP.WAV")
         elif view.id == PUZZLES_ONLY:
             view.select_radio(150)
             self.fill_puzzle_list(view, 150)
 
-    def dialog(self, screen_id, on_result=None):
-        view = widgets.ScreenView(self.ui, screen_id)
+    def dialog(self, view_or_id, on_result=None):
+        view = view_or_id if isinstance(view_or_id, widgets.ScreenView) else widgets.ScreenView(self.ui, view_or_id)
         self.dialogs.append((view, on_result))
-        if screen_id == OPTIONS_DLG:
+        if view.id == OPTIONS_DLG:
             for cid, on in ((721, self.settings.sound), (722, self.settings.music), (723, self.settings.timer)):
                 view[cid].on = on
+        if view.scene:
+            view.scene.enter()
         return view
 
     def end_dialog(self, result):
@@ -170,17 +198,29 @@ class App:
             cb(view, result)
 
     def active(self) -> widgets.ScreenView:
-        if self.text_screen:
-            return self.text_screen.view
         return self.dialogs[-1][0] if self.dialogs else self.view
+
+    def message(self, text, buttons=(1200,), on_result=None):
+        view = campaign.message_view(self.ui, list(buttons))
+        campaign.MessageScene(self, view, text)
+        self.sounds.play(Sounds.ALERT)
+        return self.dialog(view, (lambda v, r: on_result(r)) if on_result else None)
+
+    def confirm(self, text, on_yes):
+        self.message(text, (1201, 1202), lambda r: on_yes() if r == YES else None)
 
     # ----------------------------------------------------------- main menu
     def refresh_players(self, view):
         view[108].items = list(self.settings.players)
         view[108].selected = 0 if self.settings.players else -1
         view[107].value = self.settings.players[0] if self.settings.players else ""
-        # Label 109 says whether PLAY resumes or starts a game (LANGENU 109/110).
-        view[109].set_text(self.strings.get(110, ""))
+        self.update_resume_label(view)
+
+    def update_resume_label(self, view=None):
+        """Label 109: 'Resume game' (LANGENU 109) or 'Play new game' (110) for the typed player."""
+        view = view or self.stack[0]
+        name = view[107].value.strip()
+        view[109].set_text(self.strings.get(109 if name and Player.exists(name) else 110, ""))
 
     def player_ready(self) -> bool:
         """0x41c520: the name typed in the main menu becomes the current player."""
@@ -190,16 +230,195 @@ class App:
             return False
         self.settings.use_player(name)
         self.settings.save()
+        if self.player is None or self.player.name != name:
+            self.player = Player.load(name)
         return True
+
+    def save_player(self):
+        if self.player:
+            self.player.save()
+
+    # -------------------------------------------------------------- campaign
+    def city_name(self, city) -> str:
+        return self.strings.get(460 + city.id, city.name.title()) if city.id else self.strings.get(497, "Tutorial")
+
+    def city_slot(self, level, city) -> int:
+        """Which of the level's five pieces this city holds (cities in id order)."""
+        return sorted(c.id for c in level.cities.values()).index(city.id)
+
+    def found_slots(self, level):
+        return {self.city_slot(level, c) for c in level.cities.values() if c.path in self.player.pieces}
+
+    def is_solved(self, city, puzzle):
+        return self.player.is_solved(city.path, puzzle.number) if self.player else False
+
+    def puzzle_credits(self, puzzle):
+        return campaign.parse_credits(self.credits.get(puzzle.name_id, ""))
+
+    def play(self):
+        """PLAY (0x41bc90): the level's story video once, then the map or the saved city."""
+        p = self.player
+        if p.finished:
+            self.message(self.strings.get(1029, ""))
+            return
+        if p.level not in p.videos_seen:
+            p.videos_seen.append(p.level)
+            self.save_player()
+            self.play_video(world.LEVEL_VIDEOS[p.level - 1], self.resume)
+        else:
+            self.resume()
+
+    def resume(self):
+        p = self.player
+        self.stack = self.stack[:1]
+        self.show_map()
+        level = self.levels[p.level]
+        if p.city and p.city in level.cities:
+            self.enter_city(level.cities[p.city])
+
+    def play_video(self, name, then):
+        try:
+            path = self.game.file(name)
+        except FileNotFoundError:
+            then()
+            return
+        scene = campaign.VideoScene(self, path, lambda: (self.stack.pop(), then()))
+        self.push(scene.view)
+
+    def show_map(self):
+        view = widgets.ScreenView(self.ui, WORLD_MAP)
+        campaign.MapScene(self, view)
+        if self.view.id == WORLD_MAP:
+            return self.replace(view)
+        return self.push(view)
+
+    def enter_city(self, city):
+        level = self.levels[self.player.level]
+        self.player.city = city.path.split("/")[-1]
+        self.save_player()
+        view = widgets.ScreenView(self.ui, CITY)
+        campaign.CityScene(self, view, level, city)
+        self.push(view)
+
+    def open_practice(self):
+        lv0 = self.levels[0]
+        city = catalogue.City(lv0.path, 0, "TUTORIAL", lv0.puzzles)
+        view = widgets.ScreenView(self.ui, PRACTICE_CITY)
+        campaign.CityScene(self, view, lv0, city)
+        self.push(view)
+
+    def open_puzzle(self, level, city, puzzle, master=False, slot_id=None):
+        screen = world.KIND_SCREEN.get(puzzle.kind_name, 2000)
+        view = widgets.ScreenView(self.ui, screen)
+        campaign.PuzzleScene(self, view, level, city, puzzle, master=master, slot_id=slot_id)
+        self.push(view)
+
+    def leave_puzzle(self, scene):
+        self.back()
+
+    def puzzle_solved(self, scene, used_free=False):
+        p = self.player
+        self.dialogs.clear()
+        if scene.master:
+            events = p.solve_master(scene.level, scene.puzzle, used_free)
+        elif scene.level.number == 0:
+            p.solved.setdefault(scene.city.path, [])
+            if scene.puzzle.number not in p.solved[scene.city.path]:
+                p.solved[scene.city.path].append(scene.puzzle.number)
+            events = ["practice"]
+        else:
+            events = p.solve(scene.city, scene.puzzle, used_free)
+        self.save_player()
+        self.sounds.play("SUCCESS")
+        region = world.REGIONS.get(scene.city.id) if scene.city else None
+        stem = world.REGION_MUSIC.get(region)
+        self.music.play_once("MUSIC/CHWIN.WAV" if scene.master else f"MUSIC/S_{stem or 'LEVEND'}.WAV")
+        self.back()                                   # leave the puzzle screen
+        if not scene.master and self.view.scene and hasattr(self.view.scene, "flip"):
+            self.view.scene.flip(scene.slot_id)
+            self.view.scene.refresh()
+        view = campaign.success_view(self.ui)
+        campaign.SuccessScene(self, view, scene.puzzle, scene.elapsed)
+        self.dialog(view, lambda v, r: self.after_success(scene, events))
+
+    def after_success(self, scene, events):
+        """Reward messages and where to go next, one after another."""
+        p = self.player
+        if "practice" in events:
+            self.message(self.strings.get(1029, ""))
+            return
+        for ev, sound in (("token", "INCWC1"), ("wildcard", "INCWC1"), ("hint", "INCHINT1")):
+            if ev in events:
+                self.sounds.play(sound)
+        if self.view.scene and hasattr(self.view.scene, "refresh"):
+            self.view.scene.refresh()
+        if "captured" in events:
+            self.captured(scene.level)
+            return
+        if scene.master:
+            self.start_master(scene.level)
+            return
+        if "piece" in events:
+            n = len(p.level_pieces(scene.level.path))
+            stem = world.VO_STEMS[scene.level.number - 1]
+            self.music.play_once(f"VO/SX_{stem}{n}.WAV")
+            buttons = (1206, 1205) if "challenge" in events else (1204, 1205)
+            self.message(self.status.get(210, ""), buttons, self.after_piece)
+            return
+        if "city_done" in events:
+            self.message(self.strings.get(1011, ""), (1200,), lambda r: self.leave_city())
+
+    def after_piece(self, result):
+        if result == CAPTURE:
+            self.open_challenge()
+        elif result == MAP_:
+            self.leave_city()
+
+    def leave_city(self):
+        self.player.city = None
+        self.save_player()
+        while len(self.stack) > 1 and self.view.id != WORLD_MAP:
+            self.stack.pop()
+        if self.view.id != WORLD_MAP:
+            self.show_map()
+        else:
+            self.enter(self.view)
+
+    def open_challenge(self):
+        level = self.levels[self.player.level]
+        view = campaign.challenge_view(self.ui)
+        campaign.ChallengeScene(self, view, level)
+        self.push(view)
+
+    def start_master(self, level):
+        done = self.player.master_solved.get(level.path, [])
+        todo = [pz for n, pz in sorted(level.puzzles.items()) if n not in done]
+        if todo:
+            self.open_puzzle(level, None, todo[0], master=True)
+
+    def captured(self, level):
+        def next_level():
+            self.player.next_level(LAST_LEVEL)
+            self.save_player()
+            self.stack = self.stack[:1]
+            if self.player.finished:
+                self.play_video(world.LEVEL_VIDEOS[LAST_LEVEL], self.main_screen)
+            else:
+                self.play()
+        scene = campaign.CapturedScene(self, level, next_level)
+        self.push(scene.view)
 
     # ------------------------------------------------------------ commands
     def command(self, cid, button):
-        if cid == 101:                      # PLAY -> story / world map (campaign not done yet)
+        scene = self.active().scene
+        if scene and scene.command(cid, button):
+            return
+        if cid == 101:                      # PLAY (0x41bc90)
             if self.player_ready():
-                self.show(WORLD_MAP)
+                self.play()
         elif cid == 102:                    # TUTORIAL -> practice city (0x41c4d0)
             if self.player_ready():
-                self.show(PRACTICE_CITY)
+                self.open_practice()
         elif cid == 103:                    # GALLERY (0x41c3b0)
             if self.player_ready():
                 self.show(GALLERY)
@@ -216,28 +435,29 @@ class App:
         elif cid == 54:
             self.open_menu(button)
         elif cid == 703:                    # Options: Apply
-            self.end_dialog(1)
+            self.end_dialog(OK)
         elif cid == 716:
-            self.show_text(CREDITS, self.game.file("CREDITS.DAT").read_text("latin-1").splitlines())
+            view = widgets.ScreenView(self.ui, CREDITS)
+            TextScene(self, view, self.game.file("CREDITS.DAT").read_text("latin-1").splitlines())
+            self.dialog(view)
         elif cid == 717:
-            self.show_text(ABOUT, [f"%BPandora's Box Remaster {__version__}", "",
-                                   "Runs on the original Microsoft Pandora's Box files.",
-                                   "", "%BGame Designer", "Alexey Pajitnov"])
+            view = widgets.ScreenView(self.ui, ABOUT)
+            TextScene(self, view, [f"%BPandora's Box Remaster {__version__}", "",
+                                   self.strings.get(1050, ""), self.strings.get(1053, ""), "",
+                                   "%BGame Designer", "Alexey Pajitnov", "",
+                                   self.strings.get(1054, ""), self.strings.get(1071, "")])
+            self.dialog(view)
         elif cid == 150:                    # puzzle type picked on Puzzles Only
             self.fill_puzzle_list(self.view, button.id)
         else:
-            # Load / Save / Delete / Play puzzle and the in-game commands come
-            # with the save games and puzzles.
+            # Load / Save / Delete / Play puzzle come with save games and the puzzles.
             self.sounds.play(Sounds.NO_CLICK)
 
     def options_closed(self, view, result):
-        if result == 1:
+        if result == OK:
             self.settings.sound, self.settings.music, self.settings.timer = (
                 view[721].on, view[722].on, view[723].on)
             self.settings.save()
-
-    def show_text(self, screen_id, lines):
-        self.text_screen = TextScreen(widgets.ScreenView(self.ui, screen_id), lines, self.fonts)
 
     def fill_puzzle_list(self, view, type_button):
         kind = TYPE_BUTTONS.get(type_button)
@@ -259,7 +479,7 @@ class App:
     def menu_pick(self, cid):
         self.menu = None
         if cid == MENU_MAIN_SCREEN:
-            self.dialogs.clear()
+            self.save_player()
             self.main_screen()
         elif cid == MENU_MINIMIZE:
             pygame.display.iconify()
@@ -276,9 +496,7 @@ class App:
         elif c.action == sd.ACT_SCREEN:
             self.show(c.arg)
         elif c.action == sd.ACT_END_DIALOG:
-            if self.text_screen:
-                self.text_screen = None
-            elif self.dialogs:
+            if self.dialogs:
                 self.end_dialog(c.arg)
         elif c.action == sd.ACT_HELP:
             # The quick-help RTFs named in SCREEN.DAT are not on the CD.
@@ -300,16 +518,24 @@ class App:
             self.menu_mouse(ev, pos)
             return
         view = self.active()
+        scene = view.scene
         if ev.type == pygame.MOUSEMOTION:
             view.mouse_move(pos)
+            if scene:
+                scene.mouse_move(pos)
         elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
+            if scene and scene.mouse_down(pos):
+                return
             hit = view.mouse_down(pos)
             if hit and hit[0] == "list" and hit[2] >= 0:
                 lst = hit[1]
                 lst.selected = hit[2]
                 if lst.id == 108:            # pick a player
                     view[107].value = lst.items[hit[2]]
+                    self.update_resume_label(view)
         elif ev.type == pygame.MOUSEBUTTONUP and ev.button == 1:
+            if view.capture is None and scene and scene.mouse_up(pos):
+                return
             b = view.mouse_up(pos)
             if b:
                 self.click(b)
@@ -317,23 +543,26 @@ class App:
     def key(self, ev):
         if ev.key == pygame.K_F11:
             self.toggle_fullscreen()
-        elif ev.key == pygame.K_ESCAPE:
+            return
+        view = self.active()
+        if view.scene and view.scene.key(ev):
+            return
+        if ev.key == pygame.K_ESCAPE:
             if self.menu:
                 self.menu = None
-            elif self.text_screen:
-                self.text_screen = None
             elif self.dialogs:
-                self.end_dialog(2)
-            else:
-                self.back()
-        else:
-            view = self.active()
-            if view.focus is None:
-                return
+                self.end_dialog(CANCEL)
+            elif view.id != MAIN:
+                b = view.by_id.get(52)
+                if b:
+                    self.click(b)
+        elif view.focus is not None:
             if ev.key == pygame.K_RETURN and view.id == MAIN:
                 self.command(101, None)
             else:
                 view.focus.key(ev)
+                if view.id == MAIN:
+                    self.update_resume_label(view)
 
     def menu_mouse(self, ev, pos):
         if ev.type == pygame.MOUSEMOTION:
@@ -345,6 +574,12 @@ class App:
             elif not self.menu.rect.collidepoint(pos):
                 self.menu = None
 
+    def update(self, dt):
+        for view in [self.view] + [v for v, _ in self.dialogs]:
+            if view.scene:
+                view.scene.update(dt)
+        self.music.update(dt)
+
     # ------------------------------------------------------------- drawing
     def draw(self):
         c = self.canvas
@@ -352,11 +587,12 @@ class App:
         self.view.draw(c)
         for view, _ in self.dialogs:
             view.draw(c)
-        if self.text_screen:
-            self.text_screen.draw(c)
         if self.menu:
             self.menu.draw(c)
         return c
+
+    def mouse_pos(self):
+        return self.to_canvas(pygame.mouse.get_pos()) if self.window else (-1, -1)
 
     def to_canvas(self, pos):
         ww, wh = self.window.get_size()
@@ -428,7 +664,7 @@ def main(argv=None):
         print(e, file=sys.stderr)
         return 1
 
-    pygame.mixer.pre_init(22050, -16, 2, 512)
+    pygame.mixer.pre_init(22050, -16, 2, 1024)
     pygame.init()
     settings = Settings.load()
     strings = load_strings(game.file("LANGENU.DLL"))
@@ -450,13 +686,16 @@ def main(argv=None):
     app.open_window()
     app.set_cursor()
     clock = pygame.time.Clock()
+    app.music.play_once("MUSIC/INTRO.WAV")
     if not splash(app, clock):
         return 0
     while app.running:
         for ev in pygame.event.get():
             app.handle(ev)
+        app.update(clock.get_time() / 1000)
         present(app.window, app.draw())
         clock.tick(60)
+    app.save_player()
     pygame.quit()
     return 0
 

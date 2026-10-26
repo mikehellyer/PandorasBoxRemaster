@@ -45,3 +45,53 @@ profile (a 0xf30-byte object); list 108 shows the existing players.
 
 Toggles 721 Sound / 722 Music / 723 Timer are set from `0x5ba65d` / ... via `SetChecked` (`0x4ff660`);
 checked shows the down frame (the X).
+
+## Campaign flow
+
+- **PLAY** (`0x41bc90`): checks the player, then by the player's saved screen (`+0xeec`): new game -> the
+  level's movie on screen 40, then the map (400); otherwise back to the map / city. Player fields: level
+  `+0xedc`, city `+0xed8`, current puzzle `+0xef0` (= level*10000 + city*100 + puzzle), per-level
+  "movie seen" flags `+0xeb8`.
+- **Movies** (screen 40, `0x419270`): `AVIBACK.PNG` with the 448x336 video at (176,132). Table at
+  `0x5ba490`: OPEN.AVI before level 1, INT01 before level 2 ... INT07 after level 7. Indeo 5 + PCM.
+- **City -> music region** table at `0x5a9dd0` (id 500+city, name, region); see `game/world.py`.
+  It already uses the archive's city numbers (1 Amsterdam ... 35 Vienna, 36 Workshop).
+- **Rules** (STATENU 306/501-503, LANGENU 1001-1042): 10 solved puzzles = a Free Puzzle token;
+  HINT.n / WILDCARD.n puzzles give a Hint / token; PIECE.n holds the city's piece; five pieces open the
+  trickster's Challenge (the level's own puzzles); beating a timed puzzle reveals the piece or gives 3
+  tokens; leaving a city resets half-done puzzles.
+- **PUZZLE.DAT** is only a cache the game writes by scanning PANDORA.ROF (`0x431030`: `Level.*`,
+  `City.*`, `Puzzle.*`, then `time.* hint.* wildcard.* piece.* story.*`); the remaster reads the archive.
+
+## World map markers (approximation)
+
+The map controls 401-434 in SCREEN.DAT sit at the places of an **older city list** (STATENU 461-494:
+1 Acapulco, 6 Budapest, 8 Cairo, 10 Cheyenne ...), while the data and the code (`0x41fc00`:
+`AddControl(400 + city)`) use the new numbering, so taken literally Cairo would sit in Hungary. The
+shipped PANDORA.EXE is SafeDisc-encrypted and cannot be checked. The remaster matches cities to the old
+markers by name and places the nine renamed ones (Amsterdam, Honolulu, Mexico City, Milan, Moscow,
+Philadelphia, San Francisco, Tokyo, Vienna) itself from the map's scale (`world.EXTRA_MARKERS`).
+Marker art: `401B` ball (piece not found), `403B` star (found), `402` big ball (current city); legend
+LANGENU 450-452.
+
+## Screen art numbering (SCREENS.ROF)
+
+| Image | Use |
+|---|---|
+| 1600 + city id (1600 = tutorial) | city picture, 516x381 at (142,25) |
+| 521 + level | trickster portrait in the city's right panel (picture 518) |
+| 510..521 (+R) | city puzzle tiles in Puzzles Only order, 16 flip frames; R = the solved side |
+| 15<level-1><k> F / NF / A / T / S | the level's k-th box piece (found / not found / mask / turning) |
+| 15<level><k> / D | piece icons on the Challenge screen (D normal, plain highlighted) |
+| 1800 + level - 1 | the box on the Challenge screen |
+| 1701 + level - 1 | the trickster full screen; 1711-1717 and MASTER are unused placeholders |
+| 900 | message box frame (buttons 1200-1208 placed by code) |
+| CREDITS1, ABOUT1, INTRODLG | dialog frames; their text is drawn by code |
+| 250, 251-254 | the Story book (button 53) |
+
+## Music: DATA/MUSIC/PANDORA.MGD
+
+A "MediaGraph" script (plain text). LocationCF cross-fades 0 silence, 1 city region track,
+2 MAP.WAV, 3 the region's `_P` track in a puzzle, 4 LEVEND.WAV. INTRO.WAV plays at start-up, then MAP.
+One-shots: `S_<region>` success, CHWIN challenge won, CHMODE challenge, `C_<trickster>`,
+story voice-overs `VO/SX_<MAUI|PUCK|ERIS|COYO|MONK|ANAN|RAVE><piece>.WAV`. See `ui/music.py`.

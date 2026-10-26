@@ -11,6 +11,12 @@ game rules come from disassembling the unprotected `PANDORA.EUL`. Mike reviews e
      sounds, Book Antiqua text, the game cursor, Menu pop-up, Options (saved to settings.json), player
      names, Puzzles Only type picker + picture list, Credits/About text. Still to do on the menus: the
      Load/Save dialogs (need save games), quick help (the RTFs are not on the CD), and the PLAY flow.
+   - M3a ✅ (ahead of M2) campaign shell: story movies (PyAV), world map with markers, cities with
+     picture/trickster/tiles/counters, rewards (tokens, hints, pieces), piece-found and city-done
+     messages, Challenge box, capture and next level, Credits/About on their real frames, music per
+     PANDORA.MGD, saves per player (JSON). Puzzles show their picture and can be finished with a Free
+     Puzzle token or F9 until each type is written. Not yet: Load/Save dialogs, Story book (250),
+     Gallery contents, level 8 (Scalawag), timed-puzzle bonuses, the trickster icons on the map.
    - M2 one puzzle type end to end (Slices or Lens Bender: the most data is already readable), then the other nine.
    - M3 the world map, cities, rewards (piece / hint / wildcard / timed), tricksters, save games, best times.
    - M4 videos (intro + story AVIs via PyAV), music, gallery, puzzles-only mode, tutorial.

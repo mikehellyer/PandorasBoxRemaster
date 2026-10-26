@@ -244,18 +244,22 @@ def make(ui, ctl, origin):
 class ScreenView:
     """One SCREEN.DAT screen. Dialog screens are centred over the screen below."""
 
-    def __init__(self, ui: UI, screen_id: int, size=(800, 600)):
+    def __init__(self, ui: UI, screen_id: int, size=(800, 600), background: str | None = None,
+                 controls=None):
         self.ui, self.id = ui, screen_id
-        self.screen = ui.layout.screens[screen_id]
+        self.screen = ui.layout.screens.get(screen_id) or sd.Screen(screen_id, "", "", [])
         self.background = None
-        bg = self.screen.background
+        self.scene = None            # optional code-drawn content (ui/campaign.py)
+        bg = background or self.screen.background
         if bg and ui.assets.has(sd.rim_name(bg)):
             self.background = ui.assets.image(sd.rim_name(bg))
         bw, bh = self.background.get_size() if self.background else size
         self.dialog = (bw, bh) != tuple(size)
         self.origin = ((size[0] - bw) // 2, (size[1] - bh) // 2) if self.dialog else (0, 0)
         self.rect = pygame.Rect(self.origin, (bw, bh))
-        self.widgets = [make(ui, c, self.origin) for c in ui.layout.controls_of(screen_id)]
+        if controls is None:
+            controls = ui.layout.controls_of(screen_id)
+        self.widgets = [make(ui, c, self.origin) for c in controls]
         self.by_id = {w.id: w for w in self.widgets}
         self.capture = None          # button holding the mouse
         self.focus = next((w for w in self.widgets if w.focusable), None)
@@ -268,8 +272,12 @@ class ScreenView:
     def draw(self, surf):
         if self.background is not None:
             surf.blit(self.background, self.origin)
+        if self.scene:
+            self.scene.draw_back(surf)
         for w in self.widgets:
             w.draw(surf)
+        if self.scene:
+            self.scene.draw_front(surf)
         for w in self.widgets:
             w.draw_overlay(surf)
 
