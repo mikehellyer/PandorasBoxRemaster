@@ -463,6 +463,8 @@ class PuzzleScene(Scene):
                 self.game.hint_mode = False
             elif self.game and app.player.hints > 0 and not self.busy():
                 app.confirm(app.strings.get(1002, ""), self.game.use_hint)
+            elif self.game and not self.busy():
+                app.message(NO_HINTS)                  # modern: the original only clicks "no"
             else:
                 app.sounds.play(app.sounds.NO_CLICK)
         else:
@@ -524,6 +526,12 @@ def success_view(ui):
 
 
 # --------------------------------------------------------------- message box
+# Not in the original (it only plays the "no" click); the wording follows its quick help.
+NO_HINTS = ("You have no Hints yet.\n"
+            "Hints are hidden behind random puzzles. Keep solving puzzles to find them, "
+            "then click Hint to place a piece automatically.")
+
+
 class MessageScene(Scene):
     """Message boxes are built in code on 900.RIM with buttons 1200-1208."""
     TEXT_AREA = pygame.Rect(36, 96, 410, 290)

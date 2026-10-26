@@ -112,3 +112,22 @@ def test_challenge_screen(app):
     tick(app)
     click_at(app, (400, 215))                         # the box: first master puzzle
     assert app.view.scene.master
+
+
+def test_hint_with_none_explains(app):
+    new_player(app)
+    app.player_ready()
+    level = app.levels[1]
+    city = level.cities["CITY.06.CAIRO"]
+    puzzle = next(p for p in city.puzzles.values() if p.kind_name == "Rotascope")
+    app.player.hints = 0
+    app.open_puzzle(level, city, puzzle)
+    click(app, 307)                                   # Hint with none: a short explanation
+    assert app.dialogs and app.active().id == 900
+    assert "no Hints" in " ".join(app.active().scene.lines)
+    click(app, 1200)                                  # OK
+    assert not app.dialogs and not app.view.scene.game.hint_mode
+    app.player.hints = 1                              # with one: the original's question
+    click(app, 307)
+    click(app, 1201)                                  # Yes
+    assert app.view.scene.game.hint_mode

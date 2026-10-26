@@ -219,3 +219,9 @@ The "?" button (action 2) posts 0x8065; the screen opens HELP/PANDORA.M20 at its
 Shown in the code-built message box (900.RIM, OK 1200): title centred, short headings bold, bullets;
 the font steps down 17 -> 12 px until the topic fits. **Interpretation:** the original's viewer layout.
 
+### Hints
+Hints are earned (HINT.n puzzles); the Hint button (307) asks LANGENU 1002 and, on Yes, starts the
+puzzle's hint mode; one is charged when the hint is used. With none the original only plays the "no"
+click (STATENU 307: "If you have earned Hints, click to receive a Hint"). **Modern addition:** with no
+Hints the remaster shows a short message (campaign.NO_HINTS) saying so and how Hints are earned.
+
