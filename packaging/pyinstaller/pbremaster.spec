@@ -20,7 +20,7 @@ a = Analysis(
     [str(root / "packaging" / "pyinstaller" / "launch.py")],
     pathex=[str(src)],
     datas=[(str(src / "pbremaster" / "resources" / "icon.png"), "pbremaster/resources")],
-    hiddenimports=[],
+    hiddenimports=["pygame._sdl2.video"],
     excludes=["PIL", "capstone", "pytest", "pbremaster.tools"],
     noarchive=False,
 )

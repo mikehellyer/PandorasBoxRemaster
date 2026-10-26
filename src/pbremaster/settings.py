@@ -27,6 +27,8 @@ class Settings:
     timer: bool = True
     players: list[str] = field(default_factory=list)   # most recent first
     fullscreen: bool = False
+    sharp: bool = True                                   # sharp (whole-step) scaling, else smooth
+    window_size: list[int] | None = None                 # last windowed size
     game_dir: str | None = None                          # the player's original files (setup screen)
 
     @classmethod

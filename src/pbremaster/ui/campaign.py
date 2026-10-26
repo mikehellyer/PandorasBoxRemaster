@@ -351,11 +351,12 @@ class PuzzleScene(Scene):
     AREA = pygame.Rect(75, 42, 650, 540)
     SOLVED_PAUSE = 1.5          # seconds to admire the finished picture
 
-    def __init__(self, app, view, level, city, puzzle, master=False, slot_id=None):
+    def __init__(self, app, view, level, city, puzzle, master=False, slot_id=None, only=False):
         super().__init__(app, view)
         from ..puzzles import game_for
         self.level, self.city, self.puzzle = level, city, puzzle
         self.master, self.slot_id = master, slot_id
+        self.only = only                # from Puzzles Only: no campaign rewards
         self.elapsed = 0.0
         self.paused = False
         self.used_free = False

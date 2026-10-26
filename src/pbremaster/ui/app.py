@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import sys
+import time
 
 import numpy as np
 import pygame
@@ -20,9 +21,11 @@ from ..data.assets import Assets
 from ..data.rof import ROF
 from ..data.strings import load_strings
 from ..game import world
+from ..game import saves
 from ..game.progress import Player
 from ..settings import Settings
 from . import campaign, setup, widgets
+from .display import Display
 from .update_notice import UpdateNotice
 from .media import Fonts, Sounds
 from .music import Music
@@ -32,9 +35,13 @@ WIDTH, HEIGHT = 800, 600
 # Screen ids (SCREEN.DAT)
 MAIN, LOAD_DLG, SAVE_DLG, OPTIONS_DLG = 100, 101, 102, 103
 GAME_FILES = 790        # our button on the Options dialog: back to the setup screen
+DISPLAY = 791           # our button on the Options dialog: the Display box
+DISPLAY_SCALE, DISPLAY_FULL = 792, 793   # its two switches
 PUZZLES_ONLY, WORLD_MAP, CITY, PRACTICE_CITY, GALLERY = 150, 400, 500, 501, 600
 CREDITS, ABOUT = 1998, 1202
-LAST_LEVEL = 7          # level 8 (Scalawag) is not wired up yet
+# The campaign is levels 1-7, one trickster each (LANGENU 441-447, 1221-1227). LEVEL.08.SCALAWAG
+# is not a campaign level: its 40 bonus puzzles are played from Puzzles Only.
+LAST_LEVEL = 7
 
 # Dialog results (button action 15)
 OK, CANCEL, YES, NO, MAP_, STAY, CAPTURE = 1, 2, 6, 7, 16, 17, 18
@@ -125,9 +132,9 @@ class TextScene(campaign.Scene):
 
 
 class App:
-    def __init__(self, game: gamedir.GameDir, settings: Settings):
+    def __init__(self, game: gamedir.GameDir, settings: Settings, display: Display | None = None):
         self.game, self.settings = game, settings
-        self.window = None
+        self.window = display
         self.canvas = pygame.Surface((WIDTH, HEIGHT))
         self.assets = Assets(game)
         self.fonts = Fonts(game)
@@ -195,21 +202,105 @@ class App:
         if view.id == OPTIONS_DLG:
             for cid, on in ((721, self.settings.sound), (722, self.settings.music), (723, self.settings.timer)):
                 view[cid].on = on
+        if view.id in (SAVE_DLG, LOAD_DLG):
+            self.refresh_saves(view)
+            if view.id == SAVE_DLG and self.player:
+                stamp = time.strftime("%d %b %H.%M")
+                view[741].value = f"{self.strings.get(440 + self.player.level, '').strip()} {stamp}".strip()
         if view.scene:
             view.scene.enter()
         return view
 
+    # ------------------------------------------------------------- saved games
+    def refresh_saves(self, view):
+        """Fill the Save (701) or Load (702) list with the player's saved games."""
+        found = saves.list_saves(self.player.name) if self.player else []
+        lst = view[701 if view.id == SAVE_DLG else 702]
+        lst.items = [name for name, _ in found]
+        lst.selected = 0 if found and view.id == LOAD_DLG else -1
+        view.saves = found
+
+    def save_dialog_save(self, view):
+        name = view[741].value.strip()
+        if not (self.player and name):
+            self.sounds.play(Sounds.NO_CLICK)
+            return
+
+        def write():
+            saves.save_game(self.player, name)
+            self.save_player()
+            self.end_dialog(1)
+            self.message(f'Game saved as "{name}".')
+
+        if saves.exists(self.player.name, name):
+            self.confirm(f'Replace the saved game "{name}"?', write)
+        else:
+            write()
+
+    def load_dialog_load(self, view):
+        lst = view[702]
+        if not (self.player and 0 <= lst.selected < len(view.saves)):
+            self.sounds.play(Sounds.NO_CLICK)
+            return
+        loaded = saves.load_game(view.saves[lst.selected][1], self.player.name)
+        self.player = loaded
+        self.save_player()
+        self.dialogs.clear()
+        self.main_screen()
+        self.play()
+
+    def delete_selected_save(self, view):
+        lst = view[701 if view.id == SAVE_DLG else 702]
+        if not (0 <= lst.selected < len(view.saves)):
+            self.sounds.play(Sounds.NO_CLICK)
+            return
+        name, path = view.saves[lst.selected]
+
+        def gone():
+            saves.delete_save(path)
+            self.refresh_saves(view)
+
+        self.confirm(f'Delete the saved game "{name}"?', gone)
+
     def options_view(self):
-        """Screen 103 plus a 'Game files' button in the Credits/About style above them."""
+        """Screen 103 plus 'Game files' and 'Display' buttons in the Credits/About style,
+        side by side above them."""
         layout = self.ui.layout
         controls = layout.controls_of(OPTIONS_DLG)
         credits = layout.controls[716]
-        extra = dataclasses.replace(credits, id=GAME_FILES, arg=GAME_FILES, label_id=0,
-                                    rect=(credits.rect[0], credits.rect[1] - 41, 0, 0))
-        view = widgets.ScreenView(self.ui, OPTIONS_DLG, controls=controls + [extra])
+        y = credits.rect[1] - 41
+        extra = [dataclasses.replace(credits, id=cid, arg=cid, label_id=0, rect=(x, y, 0, 0))
+                 for cid, x in ((GAME_FILES, credits.rect[0] - 96), (DISPLAY, credits.rect[0] + 96))]
+        view = widgets.ScreenView(self.ui, OPTIONS_DLG, controls=controls + extra)
         view[GAME_FILES].label = "Game files"
         view[GAME_FILES].caption = "Choose where your Pandora's Box files are."
+        view[DISPLAY].label = "Display"
+        view[DISPLAY].caption = "Sharp or smooth scaling, window or full screen."
         return view
+
+    def display_dialog(self):
+        """Our Display box (message box style): scaling and window/full screen switches."""
+        ok = self.ui.layout.controls[1200]
+        controls = []
+        for i, cid in enumerate((DISPLAY_SCALE, DISPLAY_FULL, 1200)):
+            x = int((482 - 3 * 147) / 4 * (i + 1) + 147 * i)
+            c = ok if cid == 1200 else dataclasses.replace(ok, id=cid, action=sd.ACT_COMMAND, arg=cid, label_id=0)
+            controls.append(dataclasses.replace(c, rect=(x, 468 - 31 - 30, 0, 0)))
+        view = widgets.ScreenView(self.ui, 900, background="900.bmp", controls=controls)
+        campaign.MessageScene(self, view, "")
+        self.refresh_display_dialog(view)
+        return self.dialog(view)
+
+    def refresh_display_dialog(self, view):
+        st = self.settings
+        view[DISPLAY_SCALE].label = "Sharp" if st.sharp else "Smooth"
+        view[DISPLAY_FULL].label = "Full screen" if st.fullscreen else "Window"
+        text = ("Display\n"
+                + ("Sharp: crisp edges at any window size." if st.sharp
+                   else "Smooth: a softer stretch to the window.")
+                + "\n" + ("Full screen." if st.fullscreen else "In a window you can resize.")
+                + "\nClick a button to switch. F11 or Alt+Enter also switches full screen.")
+        view.scene.lines = campaign.wrap(self.fonts.get(20), text, campaign.MessageScene.TEXT_AREA.w)
 
     def end_dialog(self, result):
         view, cb = self.dialogs.pop()
@@ -344,11 +435,11 @@ class App:
         campaign.CityScene(self, view, lv0, city)
         self.push(view)
 
-    def open_puzzle(self, level, city, puzzle, master=False, slot_id=None):
+    def open_puzzle(self, level, city, puzzle, master=False, slot_id=None, only=False):
         screen = world.KIND_SCREEN.get(puzzle.kind_name, 2000)
         # Challenge puzzles use the gold-trimmed frame (0x438960 loads 300f.bmp, mode 4)
         view = widgets.ScreenView(self.ui, screen, background="300f.bmp" if master else None)
-        campaign.PuzzleScene(self, view, level, city, puzzle, master=master, slot_id=slot_id)
+        campaign.PuzzleScene(self, view, level, city, puzzle, master=master, slot_id=slot_id, only=only)
         self.push(view)
 
     def leave_puzzle(self, scene):
@@ -357,7 +448,11 @@ class App:
     def puzzle_solved(self, scene, used_free=False):
         p = self.player
         self.dialogs.clear()
-        if scene.master:
+        if scene.only:
+            events = ["only"]                       # Puzzles Only: just the success box
+            if used_free:
+                p.free -= 1
+        elif scene.master:
             events = p.solve_master(scene.level, scene.puzzle, used_free)
         elif scene.level.number == 0:
             p.solved.setdefault(scene.city.path, [])
@@ -385,6 +480,8 @@ class App:
         if "practice" in events:
             self.message(self.strings.get(1029, ""))
             return
+        if "only" in events:
+            return                                  # back on the Puzzles Only list
         for ev, sound in (("token", "INCWC1"), ("wildcard", "INCWC1"), ("hint", "INCHINT1")):
             if ev in events:
                 self.sounds.play(sound)
@@ -463,6 +560,15 @@ class App:
         elif cid == 104:                    # PUZZLES ONLY (0x41c500)
             if self.player_ready():
                 self.show(PUZZLES_ONLY)
+        elif cid == DISPLAY:                # ours: scaling and full screen
+            self.display_dialog()
+        elif cid == DISPLAY_SCALE:
+            self.settings.sharp = not self.settings.sharp
+            self.settings.save()
+            self.refresh_display_dialog(self.active())
+        elif cid == DISPLAY_FULL:
+            self.toggle_fullscreen()
+            self.refresh_display_dialog(self.active())
         elif cid == GAME_FILES:             # ours: change where the original files are
             self.change_files = True
             self.running = False
@@ -475,6 +581,19 @@ class App:
             self.back()
         elif cid == 54:
             self.open_menu(button)
+        elif cid == 707:                    # Save dialog: Save
+            self.save_dialog_save(self.active())
+        elif cid == 706:                    # Load dialog: Load
+            self.load_dialog_load(self.active())
+        elif cid == 704:                    # Save / Load dialog: Delete
+            self.delete_selected_save(self.active())
+        elif cid == 169:                    # PUZZLES ONLY: Play the selected puzzle
+            lst = self.active()[165]
+            if self.player_ready() and 0 <= lst.selected < len(getattr(self, "listed", [])):
+                level, city, puzzle = self.listed[lst.selected]
+                self.open_puzzle(level, city, puzzle, only=True)
+            else:
+                self.sounds.play(Sounds.NO_CLICK)
         elif cid == 703:                    # Options: Apply
             self.end_dialog(OK)
         elif cid == 716:
@@ -502,19 +621,21 @@ class App:
 
     def fill_puzzle_list(self, view, type_button):
         kind = TYPE_BUTTONS.get(type_button)
-        items = []
+        items, self.listed = [], []
         for lv in self.levels.values():
             for city in sorted(lv.cities.values(), key=lambda c: c.id):
                 for p in sorted(city.puzzles.values(), key=lambda p: p.number):
                     if p.kind_name == kind:
                         items.append(self.names.get(p.name_id, f"{city.name.title()} {p.number}"))
+                        self.listed.append((lv, city, p))
         view[165].items = items
         view[165].selected = 0 if items else -1
 
     # ---------------------------------------------------------------- menu
     def open_menu(self, button):
         on_main = self.view.id == MAIN and not self.dialogs
-        enabled = {MENU_MAIN_SCREEN: not on_main, MENU_SAVE: False, MENU_OPTIONS: not self.dialogs}
+        enabled = {MENU_MAIN_SCREEN: not on_main, MENU_SAVE: self.player is not None and not self.dialogs,
+                   MENU_OPTIONS: not self.dialogs}
         self.menu = DropMenu(self.fonts, (button.rect.right, button.rect.bottom + 2), enabled)
 
     def menu_pick(self, cid):
@@ -522,8 +643,10 @@ class App:
         if cid == MENU_MAIN_SCREEN:
             self.save_player()
             self.main_screen()
+        elif cid == MENU_SAVE:
+            self.dialog(SAVE_DLG)
         elif cid == MENU_MINIMIZE:
-            pygame.display.iconify()
+            self.window.minimize()
         elif cid == MENU_OPTIONS:
             self.dialog(OPTIONS_DLG, self.options_closed)
         elif cid == MENU_EXIT:
@@ -583,6 +706,8 @@ class App:
                 if lst.id == 108:            # pick a player
                     view[107].value = lst.items[hit[2]]
                     self.update_resume_label(view)
+                elif lst.id == 701:          # Save: reuse a saved game's name
+                    view[741].value = lst.items[hit[2]]
         elif ev.type == pygame.MOUSEBUTTONUP and ev.button == 1:
             if view.capture is None and scene and scene.mouse_up(pos):
                 return
@@ -591,7 +716,7 @@ class App:
                 self.click(b)
 
     def key(self, ev):
-        if ev.key == pygame.K_F11:
+        if ev.key == pygame.K_F11 or (ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER) and ev.mod & pygame.KMOD_ALT):
             self.toggle_fullscreen()
             return
         view = self.active()
@@ -648,21 +773,16 @@ class App:
         return self.to_canvas(pygame.mouse.get_pos()) if self.window else (-1, -1)
 
     def to_canvas(self, pos):
-        ww, wh = self.window.get_size()
-        scale = min(ww / WIDTH, wh / HEIGHT)
-        ox, oy = (ww - WIDTH * scale) / 2, (wh - HEIGHT * scale) / 2
-        return int((pos[0] - ox) / scale), int((pos[1] - oy) / scale)
+        return self.window.to_canvas(pos)
 
     def toggle_fullscreen(self):
         self.settings.fullscreen = not self.settings.fullscreen
-        self.open_window()
+        self.window.set_fullscreen(self.settings.fullscreen)
         self.settings.save()
 
     def open_window(self):
-        if self.settings.fullscreen:
-            self.window = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        else:
-            self.window = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+        if self.window is None:
+            self.window = Display(self.settings)
 
     def set_cursor(self):
         """The game's own arrow (cursor 109 in PANDORA.EUL), if the EUL is there."""
@@ -674,14 +794,9 @@ class App:
         pygame.mouse.set_cursor(pygame.cursors.Cursor(hot, surf.copy()))
 
 
-def present(window, canvas):
-    """Scale the 800x600 canvas into the window, keeping the aspect ratio."""
-    ww, wh = window.get_size()
-    scale = min(ww / WIDTH, wh / HEIGHT)
-    size = (int(WIDTH * scale), int(HEIGHT * scale))
-    window.fill((0, 0, 0))
-    window.blit(pygame.transform.smoothscale(canvas, size), ((ww - size[0]) // 2, (wh - size[1]) // 2))
-    pygame.display.flip()
+def present(display, canvas):
+    """Scale the 800x600 canvas into the window (ui/display.py: sharp or smooth)."""
+    display.present(canvas)
 
 
 def splash(app, clock):
@@ -723,11 +838,6 @@ def main(argv=None):
 
     pygame.mixer.pre_init(22050, -16, 2, 1024)
     pygame.init()
-    try:
-        from importlib.resources import files
-        pygame.display.set_icon(pygame.image.load(str(files("pbremaster") / "resources" / "icon.png")))
-    except (OSError, pygame.error, ModuleNotFoundError):
-        pass
     settings = Settings.load()
     try:
         game = gamedir.find(args.data, settings.game_dir)
@@ -735,19 +845,8 @@ def main(argv=None):
         if args.screenshot:
             print(e, file=sys.stderr)
             return 1
-        window = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
-        pygame.display.set_caption(f"Pandora's Box Remaster {__version__}")
-        gone = (f"Your game files at {settings.game_dir} can't be found. Is the CD in the drive?"
-                if settings.game_dir else "")
-        game = pick_game(settings, window, gone)
-        if game is None:
-            pygame.quit()
-            return 0
-    strings = load_strings(game.file("LANGENU.DLL"))
-    pygame.display.set_caption(f"{strings.get(56, 'Pandora' + chr(39) + 's Box')} Remaster {__version__}")
-
+        game = None
     if args.screenshot:
-        pygame.display.set_mode((WIDTH, HEIGHT))
         app = App(game, settings)
         if args.screen != MAIN:
             app.show(args.screen)
@@ -758,9 +857,18 @@ def main(argv=None):
         pygame.image.save(app.draw(), args.screenshot)
         return 0
 
+    display = Display(settings, f"Pandora's Box Remaster {__version__}")
+    if game is None:
+        gone = (f"Your game files at {settings.game_dir} can't be found. Is the CD in the drive?"
+                if settings.game_dir else "")
+        game = pick_game(settings, display, gone)
+        if game is None:
+            display.close()
+            pygame.quit()
+            return 0
     first = True
     while True:
-        app = App(game, settings)
+        app = App(game, settings, display)
         app.open_window()
         app.set_cursor()
         clock = pygame.time.Clock()
@@ -777,6 +885,8 @@ def main(argv=None):
             present(app.window, app.draw())
             clock.tick(60)
         app.save_player()
+        display.remember_size()
+        settings.save()
         if not app.change_files:
             break
         app.music.stop()

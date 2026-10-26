@@ -148,9 +148,7 @@ class SetupScreen:
         return self.result
 
     def to_canvas(self, pos):
-        ww, wh = self.window.get_size()
-        scale = min(ww / WIDTH, wh / HEIGHT)
-        return int((pos[0] - (ww - WIDTH * scale) / 2) / scale), int((pos[1] - (wh - HEIGHT * scale) / 2) / scale)
+        return self.window.to_canvas(pos)
 
     def handle(self, ev):
         if self.copying:
@@ -240,12 +238,7 @@ class SetupScreen:
             shade.fill((0, 0, 0, 140))
             surf.blit(shade, (0, 0))
             self.draw_progress(surf, mouse)
-        ww, wh = self.window.get_size()
-        scale = min(ww / WIDTH, wh / HEIGHT)
-        size = (int(WIDTH * scale), int(HEIGHT * scale))
-        self.window.fill((0, 0, 0))
-        self.window.blit(pygame.transform.smoothscale(surf, size), ((ww - size[0]) // 2, (wh - size[1]) // 2))
-        pygame.display.flip()
+        self.window.present(surf)                  # ui/display.Display
 
     def draw_status(self, surf):
         c = self.check

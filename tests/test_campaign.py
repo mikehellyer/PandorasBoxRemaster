@@ -165,3 +165,54 @@ def test_challenge_free_costs_three(app):
     click(app, 1201)                                  # Yes: use them
     tick(app, 20)
     assert app.player.free == 1
+
+
+def test_puzzles_only_plays_any_puzzle(app):
+    new_player(app)
+    click(app, 104)                                   # PUZZLES ONLY
+    assert app.view.id == 150
+    click(app, 151)                                   # Focus Point
+    k = next(i for i, (lv, _, _) in enumerate(app.listed) if lv.number == 8)   # a Scalawag bonus puzzle
+    app.view[165].selected = k
+    before = (app.player.free, app.player.hints, list(app.player.pieces))
+    click(app, 169)                                   # Play
+    scene = app.view.scene
+    assert scene.only and scene.level.number == 8 and scene.puzzle.kind_name == "Focus Point"
+    ev(app, pygame.KEYDOWN, key=pygame.K_F9, unicode="", mod=0)
+    tick(app, 20)
+    assert app.active().id == 130                     # Congratulations
+    click(app, 131)
+    assert app.view.id == 150 and not app.dialogs     # straight back to the list
+    assert (app.player.free, app.player.hints, list(app.player.pieces)) == before
+
+
+def test_save_and_load_games(app):
+    from pbremaster.ui.app import LOAD_DLG, MENU_SAVE, SAVE_DLG
+
+    new_player(app)
+    app.player_ready()
+    app.player.hints = 3
+    app.show_map()
+    app.open_menu(app.view[54])
+    assert app.menu.enabled[MENU_SAVE]                 # Save is offered once a player is playing
+    app.menu_pick(MENU_SAVE)
+    assert app.active().id == SAVE_DLG and "Level 1" in app.active()[741].value
+    app.active()[741].value = "Before Cairo"
+    click(app, 707)                                    # Save
+    assert app.active().id == 900                      # "Game saved as ..."
+    click(app, 1200)
+    app.player.hints = 0                               # play on and lose the hints
+
+    app.dialog(LOAD_DLG)
+    assert app.active()[702].items == ["Before Cairo"]
+    tick(app, 1)
+    app.dialogs[-1][0][702].selected = 0
+    click(app, 706)                                    # Load: back to that point, on the map
+    assert app.player.hints == 3 and app.view.id in (40, 400)
+
+    app.dialog(SAVE_DLG)
+    view = app.active()
+    view[701].selected = 0
+    click(app, 704)                                    # Delete, then Yes
+    click(app, 1201)
+    assert view[701].items == []

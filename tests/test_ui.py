@@ -116,3 +116,21 @@ def test_options_game_files_button(app):
     assert app.active()[GAME_FILES].label == "Game files"
     click(app, GAME_FILES)
     assert app.change_files and not app.running
+
+
+def test_display_options(app):
+    from pbremaster.ui.app import DISPLAY, DISPLAY_FULL, DISPLAY_SCALE, OPTIONS_DLG
+
+    app.dialog(OPTIONS_DLG, app.options_closed)
+    click(app, DISPLAY)
+    assert app.active()[DISPLAY_SCALE].label == "Sharp" and app.settings.sharp
+    click(app, DISPLAY_SCALE)
+    assert not app.settings.sharp and app.active()[DISPLAY_SCALE].label == "Smooth"
+    app.draw()
+    app.window.present(app.canvas)                    # smooth path draws too
+    click(app, DISPLAY_FULL)
+    assert app.settings.fullscreen and app.active()[DISPLAY_FULL].label == "Full screen"
+    app.command(DISPLAY_FULL, None)                   # (full screen is a bigger window: click by id)
+    assert not app.settings.fullscreen and app.active()[DISPLAY_FULL].label == "Window"
+    click(app, 1200)                                  # OK
+    assert app.active().id == OPTIONS_DLG

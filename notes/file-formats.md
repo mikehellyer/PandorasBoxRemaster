@@ -71,8 +71,10 @@ Loose: `DATA/SPLASH.PNG`, `DATA/LOADBAR.PNG`, `DATA/TRICKS.BMP`.
 - `LEVEL.0`: the tutorial, one puzzle of each type (12 folders).
 - Levels 1-7, one per trickster (Maui, Puck, Eris, Coyote, Monkey, Anansi, Raven): 5 cities x 10 puzzles,
   plus 1-3 level puzzles (`LEVEL.nn/PUZZLE.n.*`), presumably the master puzzle (LANGENU 30 "Master Puzzle").
-- `LEVEL.08.SCALAWAG`: 20 "cities" x 2 puzzles (11, 12), folders named after the picture. Probably the
-  final level / puzzles-only extras. 🟡
+- `LEVEL.08.SCALAWAG`: 20 "cities" (ids 1-20: 14 real cities plus FPN, RTS, OVR, JST, IMH, FNF) x puzzles
+  11 and 12, with no pieces, hints or tokens. Not a campaign level: the game's texts cover exactly seven
+  levels (LANGENU 441-447 titles, 1221-1227 Challenges, STATENU 440-446 captures), so these 40 are bonus
+  puzzles, played from Puzzles Only. ✅
 - 411 puzzles in total: Focus Point 71, Overlap 63, Rotascope 55, Find and Fill 45, Jesse's Strips 43,
   Image Hole 42, Outer Layer 29, Slices 29, Lens Bender 22, Interlock 12.
 

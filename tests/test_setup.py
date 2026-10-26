@@ -63,8 +63,11 @@ def typing(text):
 def test_setup_screen_picks_folder(fake_cd, home):
     from pbremaster.ui.setup import SetupScreen
 
+    from pbremaster.settings import Settings
+    from pbremaster.ui.display import Display
+
     pygame.init()
-    window = pygame.display.set_mode((800, 600))
+    window = Display(Settings())
     s = SetupScreen(window, current="")
     for ev in typing(str(fake_cd)):
         s.handle(ev)
@@ -83,8 +86,11 @@ def test_setup_screen_picks_folder(fake_cd, home):
 def test_setup_screen_copies_first(fake_cd, home):
     from pbremaster.ui.setup import SetupScreen
 
+    from pbremaster.settings import Settings
+    from pbremaster.ui.display import Display
+
     pygame.init()
-    window = pygame.display.set_mode((800, 600))
+    window = Display(Settings())
     s = SetupScreen(window, current=str(fake_cd))
     s.copy_first = True
     s.choose()

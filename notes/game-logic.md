@@ -231,3 +231,15 @@ Free (306, handler 0x436430) asks LANGENU 1001 and solves the puzzle for one tok
 and with fewer than three 1042 says to earn more in this level's cities. **Modern addition:** with no
 tokens on a normal puzzle the remaster shows campaign.NO_TOKENS instead of only the "no" click.
 
+### Puzzles Only, saved games, display
+- Puzzles Only (150): a type button fills the list (165) with every puzzle of that type, Scalawag's bonus
+  puzzles included; Play (169) opens the selected one outside the campaign (no pieces, tokens or Hints;
+  a Free token still costs one) and returns to the list when it is solved.
+- Save (menu 40004, dialog 102: name box 741, list 701, Save 707, Delete 704) and Load (106, dialog 101:
+  list 702, Load 706, Delete 704): named snapshots of the player's progress (game/saves.py, JSON under
+  the data folder). Progress itself is still saved automatically. Load puts the player back on the map.
+  **Interpretation:** saves are per player; overwrite and delete ask first.
+- **Modern:** ui/display.py draws the 800x600 frame in a GPU window, sharp ("sharp bilinear": whole-number
+  nearest scaling, then linear to fit) or smooth, 4:3 with borders; window sized to about 85% of the
+  desktop and remembered; F11 / Alt+Enter and Options > Display switch full screen and scaling.
+
