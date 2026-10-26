@@ -29,6 +29,7 @@ class Settings:
     fullscreen: bool = True                              # start full screen (Settings page, F11)
     sharp: bool = True                                   # sharp (whole-step) scaling, else smooth
     check_updates: bool = True                           # look for a new release at start
+    hires_text: bool = True                              # redraw text at the window's resolution
     window_size: list[int] | None = None                 # last windowed size
     game_dir: str | None = None                          # the player's original files (setup screen)
 

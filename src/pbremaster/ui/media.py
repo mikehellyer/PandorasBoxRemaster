@@ -4,6 +4,7 @@ from __future__ import annotations
 import pygame
 
 from ..data import gamedir
+from .hitext import HiFont
 
 
 class Fonts:
@@ -21,9 +22,7 @@ class Fonts:
         # which is what pygame's size means for a TrueType font.
         key = (size, bold)
         if key not in self._cache:
-            f = pygame.font.Font(self.path, size)
-            f.bold = bold
-            self._cache[key] = f
+            self._cache[key] = HiFont(self, self.path, size, bold)    # remembers its text (ui/hitext.py)
         return self._cache[key]
 
 

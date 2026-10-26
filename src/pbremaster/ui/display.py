@@ -14,6 +14,8 @@ import math
 
 import pygame
 
+from . import hitext
+
 WIDTH, HEIGHT = 800, 600
 
 try:
@@ -61,6 +63,8 @@ class Display:
                 continue
         self.canvas_tex = None
         self.big = None
+        self.text_cache = {}            # (TextInfo, scale) -> image or texture
+        self.text_scale = None
         self.windowed_size = size
         if settings.fullscreen:
             self.win.set_fullscreen(desktop=True)
@@ -80,9 +84,29 @@ class Display:
         return int((pos[0] - d.x) * WIDTH / d.w), int((pos[1] - d.y) * HEIGHT / d.h)
 
     # ------------------------------------------------------------- drawing
+    def lift_text(self, canvas):
+        """High-resolution text (ui/hitext.py): the canvas without the text to redraw, and that text."""
+        scale = self.dest().w / WIDTH
+        if not (self.settings.hires_text and scale > 1.05 and hasattr(canvas, "peel")):
+            return canvas, []
+        if scale != self.text_scale:
+            self.text_cache.clear()
+            self.text_scale = scale
+        return canvas.peel()
+
+    def text_image(self, info, make):
+        key = (info, self.text_scale)
+        img = self.text_cache.get(key)
+        if img is None:
+            if len(self.text_cache) > 800:
+                self.text_cache.clear()
+            img = self.text_cache[key] = make(hitext.render_scaled(info, self.text_scale))
+        return img
+
     def present(self, canvas: pygame.Surface):
+        canvas, texts = self.lift_text(canvas)
         if self.renderer is None:
-            return self.present_cpu(canvas)
+            return self.present_cpu(canvas, texts)
         r, d = self.renderer, self.dest()
         sharp = self.settings.sharp
         quality = 0 if sharp else 1
@@ -103,13 +127,23 @@ class Display:
             r.blit(self.big, d)
         else:
             r.blit(self.canvas_tex, d)
+        for info, rect, shown in texts:
+            tex = self.text_image(info, lambda img: video.Texture.from_surface(r, img))
+            spot = hitext.place((tex.width, tex.height), rect, shown, d, self.text_scale)
+            if spot:
+                r.blit(tex, spot[0], spot[1])
         r.present()
 
-    def present_cpu(self, canvas):
+    def present_cpu(self, canvas, texts=()):
         surf = self.win.get_surface()
         surf.fill((0, 0, 0))
         d = self.dest()
         surf.blit(pygame.transform.smoothscale(canvas, d.size), d)
+        for info, rect, shown in texts:
+            img = self.text_image(info, lambda img: img)
+            spot = hitext.place(img.get_size(), rect, shown, d, self.text_scale)
+            if spot:
+                surf.blit(img, spot[0], spot[1])
         self.win.flip()
 
     # ---------------------------------------------------------- window state

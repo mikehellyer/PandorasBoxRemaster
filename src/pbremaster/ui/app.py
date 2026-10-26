@@ -24,7 +24,7 @@ from ..game import world
 from ..game import saves
 from ..game.progress import Player
 from ..settings import Settings
-from . import campaign, setup, widgets
+from . import campaign, hitext, setup, widgets
 from .display import Display
 from .update_notice import UpdateNotice
 from .media import Fonts, Sounds
@@ -37,8 +37,9 @@ MAIN, LOAD_DLG, SAVE_DLG, OPTIONS_DLG = 100, 101, 102, 103
 # Ours: Options > Settings opens a Settings page built like the Options dialog.
 SETTINGS, GAME_FILES = 791, 790
 SETTINGS_DLG, SETTINGS_TITLE, SETTINGS_OK = 7030, 7031, 7039
-SETTINGS_SWITCHES = [(7040, "Full screen"), (7041, "Sharp scaling"), (7042, "Check for updates")]
-SETTINGS_FIELDS = {7040: "fullscreen", 7041: "sharp", 7042: "check_updates"}
+SETTINGS_SWITCHES = [(7040, "Full screen"), (7041, "Sharp scaling"), (7042, "Check for updates"),
+                     (7043, "High-resolution text")]
+SETTINGS_FIELDS = {7040: "fullscreen", 7041: "sharp", 7042: "check_updates", 7043: "hires_text"}
 PUZZLES_ONLY, WORLD_MAP, CITY, PRACTICE_CITY, GALLERY = 150, 400, 500, 501, 600
 CREDITS, ABOUT = 1998, 1202
 # The campaign is levels 1-7, one trickster each (LANGENU 441-447, 1221-1227). LEVEL.08.SCALAWAG
@@ -137,7 +138,7 @@ class App:
     def __init__(self, game: gamedir.GameDir, settings: Settings, display: Display | None = None):
         self.game, self.settings = game, settings
         self.window = display
-        self.canvas = pygame.Surface((WIDTH, HEIGHT))
+        self.canvas = hitext.TextCanvas((WIDTH, HEIGHT))
         self.assets = Assets(game)
         self.fonts = Fonts(game)
         self.sounds = Sounds(game, settings)
@@ -825,6 +826,7 @@ class App:
     # ------------------------------------------------------------- drawing
     def draw(self):
         c = self.canvas
+        c.begin()
         c.fill((0, 0, 0))
         self.view.draw(c)
         for view, _ in self.dialogs:

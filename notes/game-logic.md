@@ -316,3 +316,12 @@ On a puzzle screen R presses the type's Rotate button, F its Flip button (`Puzzl
 `.flip`; Interlock and Slices have both, Jesse's Strips, Overlap, Lens Bender and Outer Layer only
 Rotate) and H the Hint button (307). A key does exactly what a click on the button does, sound
 included; a type without the button gives the "no" click.
+
+### High-resolution text (ours, `ui/hitext.py`)
+Text is still drawn into the 800x600 canvas, but `Fonts.get` hands out `HiFont`s that remember what
+each rendered surface says, and the canvas (`TextCanvas`) notes every such surface blitted straight
+onto it with the pixels before and after. Before the frame is shown, `peel()` walks those notes
+backwards: text whose pixels are untouched is taken out (the earlier pixels go back) and the display
+draws it again from the same font at the window's scale, centred on the scaled box and cut to any
+clip. Text that something later drew over stays in the canvas as it was. Settings > "High-resolution
+text" (on by default) turns it off; it does nothing when the window isn't bigger than 800x600.
