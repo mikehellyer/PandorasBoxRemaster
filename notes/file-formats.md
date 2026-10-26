@@ -85,7 +85,7 @@ Official names from LANGENU.DLL 150-161. "Help file" is the quick-help RTF named
 | Image Hole ✅ | IMH, IHL | `PUZZLE.IMH` + 650x540 picture .JPG + hole mask .PNG (.BMP on 4 Scalawag puzzles) | see below | imageqh.rtf | IMG/ |
 | Focus Point ✅ | FPN, ZOO | `PUZZLE.ZOO` | Zoommess file, see below | focalpt.rtf | FPN/ |
 | Rotascope ✅ | RTT, RTS | `PUZZLE.RTT` | `'Zero'` record (the tutorial wraps it in 'MAP'), see below | rotascop.rtf | RTT/ |
-| Overlap | OVL, FSH | `PUZZLE.FSH` | `'SFHP'`, u32 3, ... ❓ | overlaps.rtf | OVER/ |
+| Overlap ✅ | OVL, FSH | `PUZZLE.FSH` | see below | overlaps.rtf | OVER/ |
 | Outer Layer | SKN, SKI | `3DSKIN.SKI` (INI) + `3DSKIN_SPRn.PNG` + `CAMERAn/{BACK.JPG, ADD.PNG, MULT.PNG, WARPER.DAT, WARPER.MAP}` | pre-rendered 3D, warp maps ❓ | 3dskins.rtf | 3DSKIN/ |
 | Jesse's Strips ✅ | JES, JESS | `PUZZLE.JES` + picture .JPG | see below | jesse.rtf | JES/ |
 | Slices | SLC, SLICE | `STATE.TXT` (text: per object `x y flip rot` + name), `OBJECT.WRL` (VRML 1.0), `nOBJ_m.PNG` + masks | 🟡 | 3dslices.rtf | SLICE/ |
@@ -217,3 +217,21 @@ u32 n, n x (x, y): board cells shown from the start (marked at +0x26c)
 ```
 Tray grids are 19x16 @30, 23x19 @25, 28x24 @20 (all ~570x480). The board offset (solution - rect/cell)
 is the same for every strip of a puzzle (checked on all 43).
+
+## ✅ PUZZLE.FSH (Overlap)
+
+`src/pbremaster/data/fsh.py`; loader `0x4e1c30`, piece load `0x4e4960`, shape table built at `0x4e4780`.
+A raw struct dump (0xCD = MSVC uninitialised fill):
+```
+'SFHP', u32 3, i32 cols, rows, cell, pieces, stacks, ?, ?, ?, ?
+char picture_path[260], char background_path[260]  -> OVER/BG_<name>.PNG
+u32 bits, bytes: CBitField of cells shown from the start
+stacks x { u32 cap, cap x u32 (index 0 unused), u32 count, u32 ? }   (stale entries: use piece.stack)
+pieces x { i32 x, y, shape, rotation, scramble, ?, stack, number }
+u32 size, JPEG (one file: BMP)
+```
+Shapes: anchor + two steps; shape 0 straight, shape 1 L; steps by (rotation + scramble) % 4:
+`0: (0,1)(0,1) | (-1,0)(-1,0) | (0,-1)(0,-1) | (1,0)(1,0)`,
+`1: (0,1)(-1,0) | (-1,0)(0,-1) | (0,-1)(1,0) | (1,0)(0,1)`.
+Shown cells + pieces cover every cell in all 63 files; pieces overlap; anchors outside the picture
+show the background pattern.

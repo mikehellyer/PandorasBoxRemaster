@@ -8,6 +8,7 @@ def game_for(kind_name):
     from .focuspoint import FocusPoint
     from .imagehole import ImageHole
     from .jesse import JessesStrips
+    from .overlap import Overlap
     from .rotascope import Rotascope
     return {"Focus Point": FocusPoint, "Rotascope": Rotascope, "Image Hole": ImageHole,
-            "Jesse's Strips": JessesStrips}.get(kind_name)
+            "Jesse's Strips": JessesStrips, "Overlap": Overlap}.get(kind_name)

@@ -62,6 +62,7 @@ def test_play_video_map_city_puzzle(app):
     click(app, 507)                                   # PUZZLE.04, the piece
     assert app.view.id == 5000
     ev(app, pygame.KEYDOWN, key=pygame.K_F9, unicode="", mod=0)
+    tick(app, 20)                                     # the finished picture shows first
     assert app.active().id == 130                     # Congratulations
     click(app, 131)                                   # Continue
     assert app.active().id == 900                     # "You found the piece in this city."

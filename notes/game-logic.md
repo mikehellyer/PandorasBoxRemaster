@@ -139,3 +139,12 @@ quarter, tabs or keys 1-5 switch trays, holding a dragged strip over a tab moves
 keeps its own loose strips; a strip sticks when dropped on its own place upright; trays get a light
 tint of their tab colour; tab hold 0.6 s; rotation is clockwise. No Grid toggle yet (no art for it).
 Tall pictures (12x18 cells) overhang the 16-row grid; the remaster clips the board to the grid.
+
+### Overlap ✅ (COverlapseObject, `src/pbremaster/puzzles/overlap.py`)
+Texts LANGENU 5414-5421. OVER/BACKGROUND.PNG is 725x540: a stack column (4 compartments at y 0/130/270/400)
+and the 540x540 board, picture centred on the BG pattern. Drag the top piece of a stack to the board;
+right-click / Rotate turns it; it sticks on its anchor with no scramble left; dropped on a stack it
+moves there; arrows (OVER/BUTTONS.PNG) look through a stack. Sounds OVER/OL_SEL, OL_ROTAT, OL_RIGHT,
+OL_WRONG, OL_REORD, OL_DC.
+**Interpretation:** compartment/arrow placement and thumbnail size are measured from the art; the
+drop tolerance is "nearest cell".
