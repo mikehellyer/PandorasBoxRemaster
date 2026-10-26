@@ -92,6 +92,9 @@ class JessesStrips(PuzzleGame):
     def save_state(self):
         return {"tray": self.tray, "pieces": [[p.tray, list(p.cell), p.turns] for p in self.pieces]}
 
+    def undo_key(self, state):
+        return state["pieces"]          # switching trays isn't a move
+
     def load_state(self, state):
         for p, (tray, cell, turns) in zip(self.pieces, state["pieces"]):
             p.tray, p.cell, p.turns = tray, tuple(cell), turns

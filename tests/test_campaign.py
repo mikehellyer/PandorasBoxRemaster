@@ -425,3 +425,67 @@ def test_solving_forgets_the_half_finished_puzzle(app):
     app.open_puzzle(level, city, puzzle)
     app.puzzle_solved(app.view.scene)
     assert puzzle.path not in app.player.partial
+
+
+def key(app, k, mod=0):
+    ev(app, pygame.KEYDOWN, key=k, unicode="", mod=mod)
+
+
+def test_undo_and_redo_a_move(app):
+    new_player(app)
+    app.player_ready()
+    level = app.levels[1]
+    city = level.cities["CITY.06.CAIRO"]
+    app.open_puzzle(level, city, city.puzzles[1])                # Focus Point
+    app.dialogs.clear()
+    scene = app.view.scene
+    g = scene.game
+    start = list(g.where)
+    key(app, pygame.K_z, pygame.KMOD_CTRL)                       # nothing to undo yet
+    assert g.where == start
+    a, b = [k for k in range(len(g.where)) if not g.locked[k]][:2]
+    centre = lambda k: (g.origin[0] + g.where[k][0] + 2, g.origin[1] + g.where[k][1] + 2)
+    pa, pb = centre(a), centre(b)
+    for p in (pa, pb):
+        scene.mouse_down(p)
+        scene.mouse_up(p)
+    moved = list(g.where)
+    assert moved != start and len(scene.history) == 2            # selecting alone isn't a move
+    key(app, pygame.K_z, pygame.KMOD_CTRL)
+    assert g.where == start and g.selected is None
+    key(app, pygame.K_y, pygame.KMOD_CTRL)
+    assert g.where == moved
+    key(app, pygame.K_z, pygame.KMOD_CTRL | pygame.KMOD_SHIFT)   # redo again: nothing left
+    assert g.where == moved
+    scene.restart()
+    assert len(scene.history) == 1 and not scene.future
+
+
+def test_undo_works_for_every_type(app):
+    import json
+
+    new_player(app)
+    app.player_ready()
+    for kind, (level, city, puzzle) in puzzle_of_each_type(app).items():
+        app.open_puzzle(level, city, puzzle)
+        app.dialogs.clear()
+        scene = app.view.scene
+        g = scene.game
+        if not g.UNDO:
+            assert kind == "Image Hole"
+            scene.finished = True
+            app.back()
+            continue
+        start = scene.history[0]
+        g.complete()
+        for _ in range(600):
+            if g.solved:
+                break
+            g.update(0.05)
+        g.solved = False                         # as if the last piece were still to go
+        scene.snapshot()
+        assert len(scene.history) == 2, kind
+        scene.undo()
+        assert json.loads(json.dumps(g.save_state())) == start and not g.solved, kind
+        scene.finished = True
+        app.back()

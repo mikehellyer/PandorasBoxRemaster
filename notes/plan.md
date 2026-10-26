@@ -23,7 +23,7 @@ game rules come from disassembling the unprotected `PANDORA.EUL`. Mike reviews e
    - M3 the world map, cities, rewards (piece / hint / wildcard / timed), tricksters, save games, best times.
    - M4 videos (intro + story AVIs via PyAV), music, gallery, puzzles-only mode, tutorial.
 4. **Modern improvements**: sharp scaling, GPU window and Options > Display ✅; no-Hints / no-tokens
-   messages ✅; half-finished puzzles kept ✅. Next ideas: undo, keyboard shortcuts, high-resolution text,
+   messages ✅; half-finished puzzles kept ✅; undo/redo ✅. Next ideas: keyboard shortcuts, high-resolution text,
    a widescreen frame.
 5. **Builds** 🟡: Linux and Windows only. Done locally: first-run setup screen (`ui/setup.py`: detect CD /
    install / Wine / copied data, browse via zenity/kdialog/Tk, check, optional copy to the data folder,

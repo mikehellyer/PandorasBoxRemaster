@@ -14,6 +14,7 @@ and the SCREENS archive:
 from __future__ import annotations
 
 import dataclasses
+import json
 import re
 
 import pygame
@@ -472,6 +473,8 @@ class PuzzleScene(Scene):
                 self.tutorial = Tutorial(app, puzzle.kind_name, self.game, self.AREA)
         self.left = False
         self.resume()
+        self.history, self.future = [], []          # undo / redo: save_state() after each move
+        self.snapshot()
 
     # Half-finished puzzles (ours): leaving a puzzle unsolved keeps its pieces, timer and
     # whether a Hint was used in Player.partial; the original always started over.
@@ -498,6 +501,35 @@ class PuzzleScene(Scene):
             return
         self.elapsed = float(saved.get("elapsed", 0.0))
         self.used_hint = bool(saved.get("used_hint", False))
+
+    # Undo (ours): Ctrl+Z steps back a move, Ctrl+Y (or Ctrl+Shift+Z) forward again.
+    UNDO_DEPTH = 500
+
+    def snapshot(self):
+        g = self.game
+        if not g or not g.UNDO or g.solved or g.carrying():
+            return
+        state = json.loads(json.dumps(g.save_state()))
+        if state is None:
+            return
+        if self.history and g.undo_key(state) == g.undo_key(self.history[-1]):
+            self.history[-1] = state                   # same position, newer view
+            return
+        self.history.append(state)
+        del self.history[:-self.UNDO_DEPTH]
+        self.future.clear()
+
+    def undo(self, redo=False):
+        g = self.game
+        if not g or not g.UNDO or self.busy() or g.carrying() or not (self.future if redo else self.history[1:]):
+            self.app.sounds.play(self.app.sounds.NO_CLICK)
+            return
+        if redo:
+            self.history.append(self.future.pop())
+        else:
+            self.future.append(self.history.pop())
+        g.undo_to(self.history[-1])
+        self.app.sounds.play(self.app.sounds.CLICK)
 
     def _picture(self):
         best = None
@@ -585,10 +617,14 @@ class PuzzleScene(Scene):
             return True
         if self.tutorial and not self.busy() and self.tutorial.click(pos):
             return True
-        return bool(self.game and not self.busy() and self.game.mouse_down(pos))
+        used = bool(self.game and not self.busy() and self.game.mouse_down(pos))
+        self.snapshot()
+        return used
 
     def mouse_up(self, pos):
-        return bool(self.game and not self.busy() and self.game.mouse_up(pos))
+        used = bool(self.game and not self.busy() and self.game.mouse_up(pos))
+        self.snapshot()
+        return used
 
     def command(self, cid, button):
         app = self.app
@@ -641,21 +677,29 @@ class PuzzleScene(Scene):
         self.elapsed = 0.0
         if self.game:
             self.game.restart()
+        self.history.clear()
+        self.snapshot()
         self.app.sounds.play("RESTART")
 
     def right_click(self, pos):
         if self.game and not self.busy():
             self.game.right_click(pos)
+            self.snapshot()
 
     def wheel(self, dy):
         if self.game and not self.busy():
             self.game.wheel(dy)
+            self.snapshot()
 
     def key(self, ev):
         if self.viewing:
             self.end_viewing()
             return True
+        if ev.key in (pygame.K_z, pygame.K_y) and ev.mod & pygame.KMOD_CTRL:
+            self.undo(redo=ev.key == pygame.K_y or bool(ev.mod & pygame.KMOD_SHIFT))
+            return True
         if self.game and not self.busy() and self.game.key(ev):
+            self.snapshot()
             return True
         if ev.key == pygame.K_F9 and not (self.game and self.game.solved):
             if self.game:

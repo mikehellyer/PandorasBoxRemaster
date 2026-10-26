@@ -14,6 +14,9 @@ original was installed to. Tick **Copy the game files to this computer first** (
 you'd rather not keep the CD in the drive. The choice is remembered; change it later under
 **Options > Game files**.
 
+Extras the original didn't have: a puzzle you leave half-finished is still as you left it next
+time, Ctrl+Z / Ctrl+Y undo and redo moves (not in Image Hole).
+
 The main menu tells you when a newer version is out; nothing is downloaded until you click Update.
 
 ## Developing

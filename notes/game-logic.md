@@ -303,3 +303,10 @@ its screen is left (Back, Main Screen, loading a saved game, closing the game): 
 goes into `Player.partial[puzzle folder]` with the timer and whether a Hint was used (so a speed bonus
 can't be won by leaving and coming back). Opening the puzzle again calls `load_state()`; solving it
 clears the entry. Tutorial puzzles always start fresh, and a state that no longer loads is dropped.
+
+### Undo and redo (ours, not in the original)
+Ctrl+Z undoes the last move on a puzzle screen; Ctrl+Y or Ctrl+Shift+Z redoes it. The screen keeps
+`save_state()` after every click, right-click, wheel turn or puzzle key, skipping moments when a piece
+is picked up or dragged (`carrying()`) and states that only differ in the view (`undo_key()`: Jesse's
+Strips' tray, Outer Layer's camera). Up to 500 steps; Restart clears the history. Image Hole has no
+undo because its holes keep moving on their own. A Hint stays used after its piece is undone.

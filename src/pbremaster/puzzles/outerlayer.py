@@ -106,6 +106,9 @@ class OuterLayer(PuzzleGame):
         return {"pieces": [[p.angle, list(p.pos) if p.pos is not None else None, p.placed] for p in self.pieces],
                 "stacks": [[self.pieces.index(p) for p in s] for s in self.stacks], "camera": self.camera}
 
+    def undo_key(self, state):
+        return state["pieces"], state["stacks"]      # turning the view isn't a move
+
     def load_state(self, state):
         for p, (angle, pos, placed) in zip(self.pieces, state["pieces"]):
             p.angle, p.pos, p.placed = angle, tuple(pos) if pos is not None else None, placed

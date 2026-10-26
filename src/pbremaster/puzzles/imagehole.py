@@ -129,6 +129,8 @@ class ImageHole(PuzzleGame):
         self.rebuild()
         self.check()
 
+    UNDO = False                # the holes keep moving
+
     def save_state(self):
         return {"holes": [[h.x, h.y, list(h.dir), h.locked] for h in self.holes], "strikes": self.strikes}
 

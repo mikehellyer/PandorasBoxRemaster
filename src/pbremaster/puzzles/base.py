@@ -122,6 +122,24 @@ class PuzzleGame:
     def load_state(self, state):
         pass
 
+    # Undo (ours): the puzzle screen keeps save_state() after every move. UNDO is off for a
+    # type whose pieces move by themselves; undo_key() leaves out what only changes the view.
+    UNDO = True
+
+    def undo_key(self, state):
+        return state
+
+    def carrying(self) -> bool:
+        """A piece is picked up or being dragged: not a finished move yet."""
+        return any(getattr(self, a, None) for a in ("held", "drag", "band"))
+
+    def undo_to(self, state):
+        self.load_state(state)
+        self.hint_mode = False
+        for a in ("selected", "hover", "moving", "held", "drag", "band"):
+            if hasattr(self, a):
+                setattr(self, a, [] if isinstance(getattr(self, a), list) else None)
+
 
 def tup(x):
     """JSON lists back to tuples, all the way down (positions, rects)."""
