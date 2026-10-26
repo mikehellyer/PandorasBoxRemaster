@@ -34,9 +34,11 @@ WIDTH, HEIGHT = 800, 600
 
 # Screen ids (SCREEN.DAT)
 MAIN, LOAD_DLG, SAVE_DLG, OPTIONS_DLG = 100, 101, 102, 103
-GAME_FILES = 790        # our button on the Options dialog: back to the setup screen
-DISPLAY = 791           # our button on the Options dialog: the Display box
-DISPLAY_SCALE, DISPLAY_FULL = 792, 793   # its two switches
+# Ours: Options > Settings opens a Settings page built like the Options dialog.
+SETTINGS, GAME_FILES = 791, 790
+SETTINGS_DLG, SETTINGS_TITLE, SETTINGS_OK = 7030, 7031, 7039
+SETTINGS_SWITCHES = [(7040, "Full screen"), (7041, "Sharp scaling"), (7042, "Check for updates")]
+SETTINGS_FIELDS = {7040: "fullscreen", 7041: "sharp", 7042: "check_updates"}
 PUZZLES_ONLY, WORLD_MAP, CITY, PRACTICE_CITY, GALLERY = 150, 400, 500, 501, 600
 CREDITS, ABOUT = 1998, 1202
 # The campaign is levels 1-7, one trickster each (LANGENU 441-447, 1221-1227). LEVEL.08.SCALAWAG
@@ -193,6 +195,8 @@ class App:
         elif view.id == PUZZLES_ONLY:
             view.select_radio(150)
             self.fill_puzzle_list(view, 150)
+        elif view.id == GALLERY:
+            campaign.GalleryScene(self, view).enter()
 
     def dialog(self, view_or_id, on_result=None):
         if view_or_id == OPTIONS_DLG:
@@ -263,44 +267,49 @@ class App:
         self.confirm(f'Delete the saved game "{name}"?', gone)
 
     def options_view(self):
-        """Screen 103 plus 'Game files' and 'Display' buttons in the Credits/About style,
-        side by side above them."""
+        """Screen 103 plus our 'Settings' button in the Credits/About style above them."""
         layout = self.ui.layout
-        controls = layout.controls_of(OPTIONS_DLG)
         credits = layout.controls[716]
-        y = credits.rect[1] - 41
-        extra = [dataclasses.replace(credits, id=cid, arg=cid, label_id=0, rect=(x, y, 0, 0))
-                 for cid, x in ((GAME_FILES, credits.rect[0] - 96), (DISPLAY, credits.rect[0] + 96))]
-        view = widgets.ScreenView(self.ui, OPTIONS_DLG, controls=controls + extra)
-        view[GAME_FILES].label = "Game files"
-        view[GAME_FILES].caption = "Choose where your Pandora's Box files are."
-        view[DISPLAY].label = "Display"
-        view[DISPLAY].caption = "Sharp or smooth scaling, window or full screen."
+        extra = dataclasses.replace(credits, id=SETTINGS, arg=SETTINGS, label_id=0,
+                                    rect=(credits.rect[0], credits.rect[1] - 41, 0, 0))
+        view = widgets.ScreenView(self.ui, OPTIONS_DLG, controls=layout.controls_of(OPTIONS_DLG) + [extra])
+        view[SETTINGS].label = "Settings"
+        view[SETTINGS].caption = "Full screen, scaling, updates and where your game files are."
         return view
 
-    def display_dialog(self):
-        """Our Display box (message box style): scaling and window/full screen switches."""
-        ok = self.ui.layout.controls[1200]
-        controls = []
-        for i, cid in enumerate((DISPLAY_SCALE, DISPLAY_FULL, 1200)):
-            x = int((482 - 3 * 147) / 4 * (i + 1) + 147 * i)
-            c = ok if cid == 1200 else dataclasses.replace(ok, id=cid, action=sd.ACT_COMMAND, arg=cid, label_id=0)
-            controls.append(dataclasses.replace(c, rect=(x, 468 - 31 - 30, 0, 0)))
-        view = widgets.ScreenView(self.ui, 900, background="900.bmp", controls=controls)
-        campaign.MessageScene(self, view, "")
-        self.refresh_display_dialog(view)
+    def settings_dialog(self):
+        """Our Settings page, built like the Options dialog (700.RIM, its switches and labels):
+        changes apply at once and are remembered."""
+        c = self.ui.layout.controls
+        controls = [c[740]]
+        controls += [dataclasses.replace(c[754], id=SETTINGS_TITLE, string_id=0),
+                     dataclasses.replace(c[755], id=SETTINGS_TITLE + 1, string_id=0)]
+        for k, (cid, _) in enumerate(SETTINGS_SWITCHES):
+            controls.append(dataclasses.replace(c[721], id=cid, action=sd.ACT_COMMAND, arg=cid,
+                                                rect=(355, 96 + 60 * k, 0, 0)))
+            controls.append(dataclasses.replace(c[710], id=cid + 10, string_id=0, rect=(76, 121 + 60 * k, 0, 0)))
+        controls.append(dataclasses.replace(c[716], id=GAME_FILES, arg=GAME_FILES, label_id=0))
+        controls.append(dataclasses.replace(c[705], id=SETTINGS_OK, arg=1, label_id=0, rect=(170, 461, 0, 0)))
+        view = widgets.ScreenView(self.ui, SETTINGS_DLG, background="700.bmp", controls=controls)
+        view[SETTINGS_TITLE].set_text("SETTINGS")
+        view[SETTINGS_TITLE + 1].set_text("SETTINGS")
+        for cid, text in SETTINGS_SWITCHES:
+            view[cid + 10].set_text(text)
+            view[cid].on = getattr(self.settings, SETTINGS_FIELDS[cid])
+        view[GAME_FILES].label = "Game files"
+        view[GAME_FILES].caption = "Choose where your Pandora's Box files are."
+        view[SETTINGS_OK].label = "OK"
         return self.dialog(view)
 
-    def refresh_display_dialog(self, view):
-        st = self.settings
-        view[DISPLAY_SCALE].label = "Sharp" if st.sharp else "Smooth"
-        view[DISPLAY_FULL].label = "Full screen" if st.fullscreen else "Window"
-        text = ("Display\n"
-                + ("Sharp: crisp edges at any window size." if st.sharp
-                   else "Smooth: a softer stretch to the window.")
-                + "\n" + ("Full screen." if st.fullscreen else "In a window you can resize.")
-                + "\nClick a button to switch. F11 or Alt+Enter also switches full screen.")
-        view.scene.lines = campaign.wrap(self.fonts.get(20), text, campaign.MessageScene.TEXT_AREA.w)
+    def settings_switched(self, cid):
+        field = SETTINGS_FIELDS[cid]
+        on = self.active()[cid].on
+        if field == "fullscreen":
+            if on != self.settings.fullscreen:
+                self.toggle_fullscreen()
+        else:
+            setattr(self.settings, field, on)
+            self.settings.save()
 
     def end_dialog(self, result):
         view, cb = self.dialogs.pop()
@@ -461,6 +470,10 @@ class App:
             events = ["practice"]
         else:
             events = p.solve(scene.city, scene.puzzle, used_free)
+        if not used_free:                             # best times for the Gallery
+            from ..game import besttimes
+            p.record_time(scene.puzzle.path, scene.elapsed)
+            besttimes.record(scene.puzzle.path, scene.elapsed, p.name)
         self.save_player()
         self.sounds.play("SUCCESS")
         region = world.REGIONS.get(scene.city.id) if scene.city else None
@@ -560,15 +573,10 @@ class App:
         elif cid == 104:                    # PUZZLES ONLY (0x41c500)
             if self.player_ready():
                 self.show(PUZZLES_ONLY)
-        elif cid == DISPLAY:                # ours: scaling and full screen
-            self.display_dialog()
-        elif cid == DISPLAY_SCALE:
-            self.settings.sharp = not self.settings.sharp
-            self.settings.save()
-            self.refresh_display_dialog(self.active())
-        elif cid == DISPLAY_FULL:
-            self.toggle_fullscreen()
-            self.refresh_display_dialog(self.active())
+        elif cid == SETTINGS:               # ours: the Settings page
+            self.settings_dialog()
+        elif cid in SETTINGS_FIELDS:
+            self.settings_switched(cid)
         elif cid == GAME_FILES:             # ours: change where the original files are
             self.change_files = True
             self.running = False
@@ -873,7 +881,8 @@ def main(argv=None):
         app.set_cursor()
         clock = pygame.time.Clock()
         if first:
-            app.update_notice.start_check()
+            if settings.check_updates:
+                app.update_notice.start_check()
             app.music.play_once("MUSIC/INTRO.WAV")
             if not splash(app, clock):
                 return 0

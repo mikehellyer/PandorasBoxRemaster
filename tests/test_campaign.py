@@ -216,3 +216,28 @@ def test_save_and_load_games(app):
     click(app, 704)                                    # Delete, then Yes
     click(app, 1201)
     assert view[701].items == []
+
+
+def test_gallery_shows_best_times(app):
+    new_player(app)
+    app.player_ready()
+    level = app.levels[1]
+    city = level.cities["CITY.06.CAIRO"]
+    puzzle = next(p for p in city.puzzles.values() if p.kind_name == "Rotascope")
+    app.open_puzzle(level, city, puzzle)
+    app.view.scene.elapsed = 83.4
+    ev(app, pygame.KEYDOWN, key=pygame.K_F9, unicode="", mod=0)
+    tick(app, 20)
+    click(app, 131)                                   # Continue
+    while app.dialogs:
+        app.end_dialog(1)
+    assert app.player.best[puzzle.path] > 83
+    app.main_screen()
+    click(app, 103)                                   # GALLERY
+    gallery = app.view.scene
+    assert app.view.id == 600 and gallery.rows == []  # Image Hole: nothing solved yet
+    click(app, 652)                                   # Rotascope
+    assert len(gallery.rows) == 1
+    name, mine, best = gallery.rows[0]
+    assert mine == app.player.best[puzzle.path] and best[1] == "Tester"
+    tick(app, 1)

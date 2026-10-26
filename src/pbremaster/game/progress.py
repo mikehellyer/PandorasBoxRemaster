@@ -38,10 +38,19 @@ class Player:
     toward_token: int = 0
     total_solved: int = 0
     finished: bool = False
+    best: dict[str, float] = field(default_factory=dict)          # puzzle folder -> best seconds
 
     # ------------------------------------------------------------- queries
     def is_solved(self, city_path: str, number: int) -> bool:
         return number in self.solved.get(city_path, [])
+
+    def record_time(self, puzzle_path: str, seconds: float) -> bool:
+        """Keep the player's best time for a puzzle; True if this one is a new best."""
+        old = self.best.get(puzzle_path)
+        if old is None or seconds < old:
+            self.best[puzzle_path] = round(seconds, 2)
+            return True
+        return False
 
     def level_pieces(self, level_path: str) -> list[str]:
         return [p for p in self.pieces if p.startswith(level_path + "/")]

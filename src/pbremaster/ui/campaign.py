@@ -629,6 +629,110 @@ def message_view(ui, buttons):
     return widgets.ScreenView(ui, 900, background="900.bmp", controls=controls)
 
 
+# ----------------------------------------------------------------- gallery
+GALLERY_TYPES = {650: "Image Hole", 651: "Focus Point", 652: "Rotascope", 653: "Overlap",
+                 654: "Outer Layer", 656: "Jesse's Strips", 658: "Slices", 659: "Lens Bender",
+                 660: "Interlock", 661: "Find and Fill"}
+
+
+def clock(seconds):
+    s = int(round(seconds))
+    return f"{s // 60}:{s % 60:02d}"
+
+
+class GalleryScene(Scene):
+    """Screen 600, the gallery of best times (gallery.rtf): pick a type; the list (601)
+    shows each puzzle of it you have solved with your best time, beside the best time
+    ever on this computer or another player's (the arrow, 606, switches; labels 607 and
+    608 name the two columns). **Interpretation:** the row layout and that a puzzle is
+    listed once either side has a time for it."""
+    ROW = 20
+
+    def __init__(self, app, view):
+        super().__init__(app, view)
+        self.kind = "Image Hole"
+        self.compare = 0
+        self.scroll = 0
+        self.font = app.fonts.get(15)
+
+    def enter(self):
+        self.view.select_radio(650)
+        self.kind = "Image Hole"
+        self.refresh()
+
+    def targets(self):
+        """What the right column compares with: the best ever, then the other players."""
+        me = self.app.player.name if self.app.player else ""
+        return [None] + [n for n in self.app.settings.players if n != me]
+
+    def refresh(self):
+        from ..game import besttimes
+        from ..game.progress import Player
+        p = self.app.player
+        mine = p.best if p else {}
+        target = self.targets()[self.compare % len(self.targets())]
+        if target is None:
+            theirs = {k: v for k, v in besttimes.load().items()}
+            right = self.app.status.get(611, "Best Times")
+        else:
+            other = Player.load(target)
+            theirs = {k: (v, target) for k, v in other.best.items()}
+            right = target
+        rows = []
+        for lv in self.app.levels.values():
+            for city in lv.cities.values():
+                for pz in city.puzzles.values():
+                    if pz.kind_name == self.kind and (pz.path in mine or pz.path in theirs):
+                        name = self.app.names.get(pz.name_id, f"{city.name.title()} {pz.number}")
+                        rows.append((name, mine.get(pz.path), theirs.get(pz.path)))
+            for pz in lv.puzzles.values():
+                if pz.kind_name == self.kind and (pz.path in mine or pz.path in theirs):
+                    rows.append((self.app.names.get(pz.name_id, pz.path), mine.get(pz.path), theirs.get(pz.path)))
+        self.rows = sorted(rows, key=lambda r: r[0].lower())
+        self.scroll = 0
+        for cid, text in ((607, p.name if p else ""), (608, right)):
+            if cid in self.view.by_id:
+                self.view[cid].set_text(text)
+
+    def command(self, cid, button):
+        if cid == 650:
+            self.kind = GALLERY_TYPES.get(button.id, self.kind)
+            self.refresh()
+            return True
+        if cid == 605:
+            self.compare = (self.compare + 1) % len(self.targets())
+            self.refresh()
+            return True
+        return False
+
+    def wheel(self, dy):
+        area = self.view[601].inner
+        most = max(0, len(self.rows) - area.h // self.ROW)
+        self.scroll = max(0, min(most, self.scroll - dy))
+
+    def draw_front(self, surf):
+        area = self.view[601].inner.inflate(-8, -6)
+        clip = surf.get_clip()
+        surf.set_clip(area)
+        if not self.rows:
+            msg = "Solve a puzzle of this type to see your time here."
+            surf.blit(self.font.render(msg, True, (248, 176, 100)), (area.x + 4, area.y + 4))
+        for i, (name, mine, theirs) in enumerate(self.rows[self.scroll:]):
+            y = area.y + 2 + i * self.ROW
+            if y > area.bottom:
+                break
+            surf.blit(self.font.render(name, True, (236, 220, 190)), (area.x + 4, y))
+            right = area.right - 4
+            if theirs:
+                text = clock(theirs[0]) + (f"  {theirs[1]}" if self.compare == 0 else "")
+                img = self.font.render(text, True, (255, 110, 60))
+                surf.blit(img, (right - img.get_width(), y))
+            if mine is not None:
+                img = self.font.render(clock(mine), True, (255, 170, 80))
+                surf.blit(img, (area.x + area.w * 0.62 - img.get_width(), y))
+        surf.set_clip(clip)
+
+
 # ---------------------------------------------------------------- challenge
 class ChallengeScene(Scene):
     """The box with the level's five pieces; with all five, the centre starts

@@ -241,5 +241,13 @@ tokens on a normal puzzle the remaster shows campaign.NO_TOKENS instead of only 
   **Interpretation:** saves are per player; overwrite and delete ask first.
 - **Modern:** ui/display.py draws the 800x600 frame in a GPU window, sharp ("sharp bilinear": whole-number
   nearest scaling, then linear to fit) or smooth, 4:3 with borders; window sized to about 85% of the
-  desktop and remembered; F11 / Alt+Enter and Options > Display switch full screen and scaling.
+  desktop and remembered; starts full screen by default; F11 / Alt+Enter switch it.
+- **Modern:** Options > Settings, a page built like the Options dialog (700.RIM, its switches): Full
+  screen, Sharp scaling, Check for updates (all apply at once and are saved), and Game files.
+- Gallery (600, gallery.rtf): type buttons 650-661 (command 650), list 601 of the type's puzzles with your
+  best time beside the best time ever on this computer (with who set it) or another player's; the arrow
+  (606, command 605) switches. Times are recorded when a puzzle is solved without a Free token
+  (Player.best, game/besttimes.py in the data folder; the original's DATA/BESTTIME.DAT only holds three
+  leftover test entries and is never written). **Interpretation:** row layout; a puzzle is listed when
+  either column has a time.
 

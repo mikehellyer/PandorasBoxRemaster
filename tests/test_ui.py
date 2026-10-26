@@ -110,27 +110,33 @@ def test_quick_help(app):
 
 
 def test_options_game_files_button(app):
-    from pbremaster.ui.app import GAME_FILES, OPTIONS_DLG
+    from pbremaster.ui.app import GAME_FILES, OPTIONS_DLG, SETTINGS
 
     app.dialog(OPTIONS_DLG, app.options_closed)
+    click(app, SETTINGS)
     assert app.active()[GAME_FILES].label == "Game files"
     click(app, GAME_FILES)
     assert app.change_files and not app.running
 
 
-def test_display_options(app):
-    from pbremaster.ui.app import DISPLAY, DISPLAY_FULL, DISPLAY_SCALE, OPTIONS_DLG
+def test_settings_page(app):
+    from pbremaster.ui.app import OPTIONS_DLG, SETTINGS, SETTINGS_DLG, SETTINGS_OK
 
     app.dialog(OPTIONS_DLG, app.options_closed)
-    click(app, DISPLAY)
-    assert app.active()[DISPLAY_SCALE].label == "Sharp" and app.settings.sharp
-    click(app, DISPLAY_SCALE)
-    assert not app.settings.sharp and app.active()[DISPLAY_SCALE].label == "Smooth"
-    app.draw()
-    app.window.present(app.canvas)                    # smooth path draws too
-    click(app, DISPLAY_FULL)
-    assert app.settings.fullscreen and app.active()[DISPLAY_FULL].label == "Full screen"
-    app.command(DISPLAY_FULL, None)                   # (full screen is a bigger window: click by id)
-    assert not app.settings.fullscreen and app.active()[DISPLAY_FULL].label == "Window"
-    click(app, 1200)                                  # OK
+    click(app, SETTINGS)
+    view = app.active()
+    assert view.id == SETTINGS_DLG
+    assert [view[c].on for c in (7040, 7041, 7042)] == [False, True, True]   # windowed for tests
+    click(app, 7041)                                   # Sharp scaling off
+    assert not app.settings.sharp
+    app.window.present(app.draw())                     # the smooth path draws too
+    click(app, 7042)                                   # update check off
+    assert not app.settings.check_updates
+    view[7040].on = True
+    app.settings_switched(7040)                        # full screen on (a bigger window: no clicking)
+    assert app.settings.fullscreen
+    view[7040].on = False
+    app.settings_switched(7040)
+    assert not app.settings.fullscreen
+    click(app, SETTINGS_OK)
     assert app.active().id == OPTIONS_DLG
