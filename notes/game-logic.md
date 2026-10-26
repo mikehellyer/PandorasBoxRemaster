@@ -250,4 +250,7 @@ tokens on a normal puzzle the remaster shows campaign.NO_TOKENS instead of only 
   (Player.best, game/besttimes.py in the data folder; the original's DATA/BESTTIME.DAT only holds three
   leftover test entries and is never written). **Interpretation:** row layout; a puzzle is listed when
   either column has a time.
+- Success box (130, successdlg.bmp): shown over the solved puzzle. View (result 1) closes it and leaves
+  the finished puzzle on screen until a click, key or Back; Continue (result 0) goes straight on. Either
+  way the rewards and next steps follow. **Interpretation:** the "Click to continue" caption.
 

@@ -241,3 +241,23 @@ def test_gallery_shows_best_times(app):
     name, mine, best = gallery.rows[0]
     assert mine == app.player.best[puzzle.path] and best[1] == "Tester"
     tick(app, 1)
+
+
+def test_success_view_shows_finished_puzzle(app):
+    new_player(app)
+    app.player_ready()
+    level = app.levels[1]
+    city = level.cities["CITY.06.CAIRO"]
+    app.enter_city(city)
+    puzzle = next(p for p in city.puzzles.values() if p.kind_name == "Rotascope" and not p.piece)
+    app.open_puzzle(level, city, puzzle)
+    puzzle_view = app.view
+    ev(app, pygame.KEYDOWN, key=pygame.K_F9, unicode="", mod=0)
+    tick(app, 20)
+    assert app.active().id == 130 and app.view is puzzle_view      # box over the solved puzzle
+    click(app, 130)                                                 # View
+    assert not app.dialogs and app.view is puzzle_view and puzzle_view.scene.viewing
+    tick(app, 5)
+    assert app.view is puzzle_view                                  # stays until a click
+    click_at(app, (400, 300))
+    assert app.view.id == 500 and puzzle.number in app.player.solved[city.path]

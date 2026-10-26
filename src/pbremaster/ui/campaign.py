@@ -361,6 +361,8 @@ class PuzzleScene(Scene):
         self.paused = False
         self.used_free = False
         self.done_for = None
+        self.finished = False           # puzzle_solved has run: the success box is up
+        self.viewing = None             # after View: what to do when the player clicks on
         cls = game_for(puzzle.kind_name)
         self.game = cls(app, puzzle) if cls else None
         self.picture = None if self.game else self._picture()
@@ -395,7 +397,7 @@ class PuzzleScene(Scene):
                 self.app.sounds.play("USEHINT")
             if self.game.solved:
                 self.done_for = (self.done_for or 0.0) + dt
-                if self.done_for >= self.SOLVED_PAUSE:
+                if self.done_for >= self.SOLVED_PAUSE and not self.finished:
                     self.app.puzzle_solved(self, used_free=self.used_free)
                 return
         if not self.paused and not self.app.dialogs:
@@ -427,6 +429,13 @@ class PuzzleScene(Scene):
         if self.paused:
             shadow_text(surf, self.app.fonts.get(30), self.app.strings.get(303, "Pause"),
                         (self.AREA.centerx, self.AREA.centery - 20), centre=True)
+        if self.viewing:
+            shadow_text(surf, self.app.fonts.get(16), "Click to continue",
+                        (self.AREA.centerx, self.AREA.bottom - 26), centre=True)
+
+    def end_viewing(self):
+        go_on, self.viewing = self.viewing, None
+        go_on()
 
     # game input
     def busy(self):
@@ -438,6 +447,9 @@ class PuzzleScene(Scene):
         return False
 
     def mouse_down(self, pos):
+        if self.viewing:
+            self.end_viewing()
+            return True
         return bool(self.game and not self.busy() and self.game.mouse_down(pos))
 
     def mouse_up(self, pos):
@@ -445,7 +457,9 @@ class PuzzleScene(Scene):
 
     def command(self, cid, button):
         app = self.app
-        if cid == 52:
+        if cid == 52 and self.viewing:
+            self.end_viewing()
+        elif cid == 52:
             app.leave_puzzle(self)
         elif cid == 303:
             self.paused = button.on
@@ -503,6 +517,9 @@ class PuzzleScene(Scene):
             self.game.wheel(dy)
 
     def key(self, ev):
+        if self.viewing:
+            self.end_viewing()
+            return True
         if self.game and not self.busy() and self.game.key(ev):
             return True
         if ev.key == pygame.K_F9 and not (self.game and self.game.solved):

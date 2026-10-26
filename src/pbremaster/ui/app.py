@@ -479,13 +479,25 @@ class App:
         region = world.REGIONS.get(scene.city.id) if scene.city else None
         stem = world.REGION_MUSIC.get(region)
         self.music.play_once("MUSIC/CHWIN.WAV" if scene.master else f"MUSIC/S_{stem or 'LEVEND'}.WAV")
-        self.back()                                   # leave the puzzle screen
-        if not scene.master and self.view.scene and hasattr(self.view.scene, "flip"):
-            self.view.scene.flip(scene.slot_id)
-            self.view.scene.refresh()
-        view = campaign.success_view(self.ui)
+        scene.finished = True
+        view = campaign.success_view(self.ui)         # over the solved puzzle
         campaign.SuccessScene(self, view, scene.puzzle, scene.elapsed)
-        self.dialog(view, lambda v, r: self.after_success(scene, events))
+        self.dialog(view, lambda v, r: self.success_closed(scene, events, r))
+
+    def success_closed(self, scene, events, result):
+        """View (result 1) shows the finished puzzle until a click; Continue goes straight on."""
+        def go_on():
+            if self.view is scene.view:
+                self.back()                           # leave the puzzle screen
+            if not scene.master and self.view.scene and hasattr(self.view.scene, "flip"):
+                self.view.scene.flip(scene.slot_id)
+                self.view.scene.refresh()
+            self.after_success(scene, events)
+
+        if result == 1 and self.view is scene.view:
+            scene.viewing = go_on
+        else:
+            go_on()
 
     def after_success(self, scene, events):
         """Reward messages and where to go next, one after another."""
