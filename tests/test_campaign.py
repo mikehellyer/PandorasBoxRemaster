@@ -70,6 +70,11 @@ def test_play_video_map_city_puzzle(app):
     click(app, 1204)                                  # Map
     assert app.view.id == 400 and not app.dialogs
     tick(app)
+    # back on the map Cairo is the current location (the ringed 402 marker), yet a
+    # resumed game still starts on the map rather than inside Cairo
+    states = {m.city.id: app.view.scene.state(m) for m in app.view.scene.markers}
+    assert states[6] == "current" and list(states.values()).count("current") == 1
+    assert app.player.city is None and app.player.last_city == "CITY.06.CAIRO"
 
 
 def test_free_token_and_resume(app, game):

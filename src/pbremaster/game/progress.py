@@ -25,7 +25,8 @@ PIECES_PER_LEVEL = 5
 class Player:
     name: str
     level: int = 1
-    city: str | None = None              # ROF city folder, e.g. "CITY.06.CAIRO"
+    city: str | None = None              # ROF city folder, e.g. "CITY.06.CAIRO" (in it now: resume there)
+    last_city: str | None = None         # the city last visited: "Current location" on the map
     solved: dict[str, list[int]] = field(default_factory=dict)   # "LEVEL.01.MAUI/CITY.06.CAIRO" -> numbers
     pieces: list[str] = field(default_factory=list)              # city paths whose piece was found
     master_solved: dict[str, list[int]] = field(default_factory=dict)
@@ -94,6 +95,7 @@ class Player:
         else:
             self.level += 1
         self.city = None
+        self.last_city = None
 
     # --------------------------------------------------------- persistence
     @staticmethod

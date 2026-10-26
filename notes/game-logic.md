@@ -71,8 +71,10 @@ The map controls 401-434 in SCREEN.DAT sit at the places of an **older city list
 shipped PANDORA.EXE is SafeDisc-encrypted and cannot be checked. The remaster matches cities to the old
 markers by name and places the nine renamed ones (Amsterdam, Honolulu, Mexico City, Milan, Moscow,
 Philadelphia, San Francisco, Tokyo, Vienna) itself from the map's scale (`world.EXTRA_MARKERS`).
-Marker art: `401B` ball (piece not found), `403B` star (found), `402` big ball (current city); legend
-LANGENU 450-452.
+Marker art: `401B` ball (piece not found), `403B` star (found), `402` a halo drawn half-transparent
+under the current city's ball or star, as the legend's icon shows; legend LANGENU 450-452. The current
+location is the city last entered (`Player.last_city`, kept after going back to the map and cleared on
+a new level), separate from `Player.city`, which only says the game should resume inside a city.
 
 ## Screen art numbering (SCREENS.ROF)
 

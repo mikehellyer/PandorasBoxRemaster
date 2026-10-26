@@ -312,7 +312,7 @@ class App:
 
     def enter_city(self, city):
         level = self.levels[self.player.level]
-        self.player.city = city.path.split("/")[-1]
+        self.player.city = self.player.last_city = city.path.split("/")[-1]
         self.save_player()
         view = widgets.ScreenView(self.ui, CITY)
         campaign.CityScene(self, view, level, city)

@@ -155,7 +155,10 @@ class MapScene(Scene):
         super().__init__(app, view)
         self.found = self.frames("401b.bmp", 4)          # orange ball: piece not found
         self.star = self.frames("403b.bmp", 4)           # star: piece found
-        self.current = self.img("402.bmp")
+        self.current = self.img("402.bmp")              # halo round the current city's marker
+        if self.current:
+            self.current = self.current.copy()
+            self.current.set_alpha(160)                  # as the legend's "Current location" shows it
         self.font = app.fonts.get(14)
         self.title_font = app.fonts.get(18)
         old = {}
@@ -179,7 +182,8 @@ class MapScene(Scene):
 
     def state(self, m):
         p = self.app.player
-        if p.city and m.city.path.endswith(p.city):
+        here = p.city or p.last_city
+        if here and m.city.path.endswith("/" + here):
             return "current"
         return "found" if m.city.path in p.pieces else "not found"
 
@@ -197,13 +201,11 @@ class MapScene(Scene):
         else:
             self.challenge_rect = None
         for m in self.markers:
-            st = self.state(m)
-            if st == "current" and self.current:
+            if self.state(m) == "current" and self.current:
                 surf.blit(self.current, self.current.get_rect(center=m.rect.center))
-            else:
-                frames = self.star if st == "found" else self.found
-                if frames:
-                    surf.blit(frames[2 if m.hover else 0], m.rect)
+            frames = self.star if m.city.path in p.pieces else self.found
+            if frames:
+                surf.blit(frames[2 if m.hover else 0], m.rect)
         for m in self.markers:
             if m.hover:
                 st = {"current": 450, "not found": 451, "found": 452}[self.state(m)]
