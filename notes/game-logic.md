@@ -297,3 +297,9 @@ opens the Challenge box (STATENU 1720 "Click the box to see your progress."); la
 an empty frame. Names LANGENU 430-436. **Interpretation:** the hover caption, and the remaster's
 "Level n - Capture X" title moved beside WORLD MAP so the row is clear.
 
+### Half-finished puzzles (ours, not in the original)
+The original starts a puzzle over every time it is opened. The remaster keeps an unsolved puzzle when
+its screen is left (Back, Main Screen, loading a saved game, closing the game): `PuzzleGame.save_state()`
+goes into `Player.partial[puzzle folder]` with the timer and whether a Hint was used (so a speed bonus
+can't be won by leaving and coming back). Opening the puzzle again calls `load_state()`; solving it
+clears the entry. Tutorial puzzles always start fresh, and a state that no longer loads is dropped.

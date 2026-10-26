@@ -113,3 +113,16 @@ class PuzzleGame:
 
     def restart(self):
         pass
+
+    # Half-finished puzzles: the player's progress keeps save_state() when the puzzle is left
+    # unsolved and hands it to load_state() next time. None means "nothing to keep".
+    def save_state(self):
+        return None
+
+    def load_state(self, state):
+        pass
+
+
+def tup(x):
+    """JSON lists back to tuples, all the way down (positions, rects)."""
+    return tuple(tup(v) for v in x) if isinstance(x, list) else x

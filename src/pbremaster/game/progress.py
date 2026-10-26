@@ -42,6 +42,7 @@ class Player:
     total_solved: int = 0
     finished: bool = False
     best: dict[str, float] = field(default_factory=dict)          # puzzle folder -> best seconds
+    partial: dict[str, dict] = field(default_factory=dict)       # puzzle folder -> {state, elapsed, used_hint}
 
     # ------------------------------------------------------------- queries
     def is_solved(self, city_path: str, number: int) -> bool:

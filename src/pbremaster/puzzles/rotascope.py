@@ -109,6 +109,14 @@ class Rotascope(PuzzleGame):
         self.hint_mode = False
         self.check()
 
+    def save_state(self):
+        return {"at": [[list(pos) if isinstance(pos, tuple) else pos, list(pc) if isinstance(pc, tuple) else pc] for pos, pc in self.at.items()]}
+
+    def load_state(self, state):
+        from .base import tup
+        self.at = {tup(pos): tup(pc) for pos, pc in state["at"]}
+        self.check()
+
     def check(self):
         self.solved = self.at[CENTRE] == rtt.GAP and all(
             self.at[p] == p for p in self.positions() if p != CENTRE)

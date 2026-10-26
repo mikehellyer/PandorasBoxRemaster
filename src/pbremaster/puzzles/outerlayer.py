@@ -102,6 +102,18 @@ class OuterLayer(PuzzleGame):
     def check(self):
         self.solved = all(p.placed for p in self.pieces)
 
+    def save_state(self):
+        return {"pieces": [[p.angle, list(p.pos) if p.pos is not None else None, p.placed] for p in self.pieces],
+                "stacks": [[self.pieces.index(p) for p in s] for s in self.stacks], "camera": self.camera}
+
+    def load_state(self, state):
+        for p, (angle, pos, placed) in zip(self.pieces, state["pieces"]):
+            p.angle, p.pos, p.placed = angle, tuple(pos) if pos is not None else None, placed
+        self.stacks = [[self.pieces[i] for i in s] for s in state["stacks"]]
+        self.camera = min(state.get("camera", self.camera), len(self.cameras) - 1)
+        self.dirty = True
+        self.check()
+
     def on_object(self):
         return [p for p in self.pieces if p.pos is not None]
 

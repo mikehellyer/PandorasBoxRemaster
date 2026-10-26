@@ -470,6 +470,34 @@ class PuzzleScene(Scene):
             from .tutorial import STEPS, Tutorial
             if puzzle.kind_name in STEPS:
                 self.tutorial = Tutorial(app, puzzle.kind_name, self.game, self.AREA)
+        self.left = False
+        self.resume()
+
+    # Half-finished puzzles (ours): leaving a puzzle unsolved keeps its pieces, timer and
+    # whether a Hint was used in Player.partial; the original always started over.
+    def keep(self):
+        if self.left or not self.game or self.tutorial or self.finished or self.game.solved:
+            return
+        self.left = True
+        state = self.game.save_state()
+        if state is not None and self.app.player:
+            self.app.player.partial[self.puzzle.path] = {
+                "state": state, "elapsed": round(self.elapsed, 2), "used_hint": self.used_hint}
+
+    def resume(self):
+        saved = self.app.player.partial.get(self.puzzle.path) if self.app.player else None
+        if not saved or not self.game or self.tutorial:
+            return
+        try:
+            self.game.load_state(saved["state"])
+        except (KeyError, IndexError, TypeError, ValueError):
+            self.game.restart()                       # saved by an older version: start afresh
+            return
+        if self.game.solved:                          # nothing left to do: don't hand out a free solve
+            self.game.restart()
+            return
+        self.elapsed = float(saved.get("elapsed", 0.0))
+        self.used_hint = bool(saved.get("used_hint", False))
 
     def _picture(self):
         best = None

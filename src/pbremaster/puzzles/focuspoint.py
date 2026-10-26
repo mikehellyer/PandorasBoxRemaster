@@ -50,6 +50,15 @@ class FocusPoint(PuzzleGame):
         self.move_t = 0.0
         self.solved = all(self.locked)
 
+    def save_state(self):
+        return {"where": [list(r) for r in self.where]}
+
+    def load_state(self, state):
+        from .base import tup
+        self.where = [tup(r) for r in state["where"]]
+        self.locked = [self.where[i] == self.data.homes[i] for i in range(len(self.where))]
+        self.solved = all(self.locked)
+
     def piece_at(self, pos):
         x, y = pos[0] - self.origin[0], pos[1] - self.origin[1]
         for i, (rx, ry, rw, rh) in enumerate(self.where):

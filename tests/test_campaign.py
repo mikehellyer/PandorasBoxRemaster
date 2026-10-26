@@ -364,3 +364,64 @@ def test_trickster_icons_on_the_map(app):
     assert app.view.id == 400
     click_at(app, icons[2][0].center)                  # the current one: the Challenge box
     assert app.view.id == 1800
+
+
+def puzzle_of_each_type(app):
+    found = {}
+    for n, level in sorted(app.levels.items()):
+        if n == 0:
+            continue
+        for city in level.cities.values():
+            for p in city.puzzles.values():
+                found.setdefault(p.kind_name, (level, city, p))
+    return found
+
+
+def test_half_finished_puzzles_are_kept(app):
+    import json
+
+    new_player(app)
+    app.player_ready()
+    kinds = puzzle_of_each_type(app)
+    assert len(kinds) == 10
+    for kind, (level, city, puzzle) in kinds.items():
+        app.open_puzzle(level, city, puzzle)
+        app.dialogs.clear()                            # a speed puzzle's message
+        scene = app.view.scene
+        scene.elapsed, scene.used_hint = 42.5, True
+        before = json.loads(json.dumps(scene.game.save_state()))
+        app.back()                                     # leave it unsolved
+        assert app.player.partial[puzzle.path]["state"] == before, kind
+        app.save_player()
+        app.player = type(app.player).load(app.player.name)   # through the JSON file
+        app.open_puzzle(level, city, puzzle)
+        app.dialogs.clear()
+        scene = app.view.scene
+        assert json.loads(json.dumps(scene.game.save_state())) == before, kind
+        assert scene.elapsed == 42.5 and scene.used_hint, kind
+
+        # load_state really moves the pieces: a solved layout loads as solved
+        scene.game.complete()
+        for _ in range(600):
+            if scene.game.solved:
+                break
+            scene.game.update(0.05)
+        done = json.loads(json.dumps(scene.game.save_state()))
+        scene.game.restart()
+        assert not scene.game.solved, kind
+        scene.game.load_state(done)
+        assert scene.game.solved, kind
+        scene.finished = True                          # leave without keeping it
+        app.back()
+
+
+def test_solving_forgets_the_half_finished_puzzle(app):
+    new_player(app)
+    app.player_ready()
+    level, city, puzzle = puzzle_of_each_type(app)["Rotascope"]
+    app.open_puzzle(level, city, puzzle)
+    app.main_screen()                                  # Main Screen from the menu keeps it too
+    assert puzzle.path in app.player.partial
+    app.open_puzzle(level, city, puzzle)
+    app.puzzle_solved(app.view.scene)
+    assert puzzle.path not in app.player.partial

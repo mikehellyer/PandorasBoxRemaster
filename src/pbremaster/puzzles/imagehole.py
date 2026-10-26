@@ -129,6 +129,16 @@ class ImageHole(PuzzleGame):
         self.rebuild()
         self.check()
 
+    def save_state(self):
+        return {"holes": [[h.x, h.y, list(h.dir), h.locked] for h in self.holes], "strikes": self.strikes}
+
+    def load_state(self, state):
+        for h, (x, y, d, locked) in zip(self.holes, state["holes"]):
+            h.x, h.y, h.dir, h.locked = x, y, tuple(d), locked
+        self.strikes = state.get("strikes", 0)
+        self.rebuild()
+        self.check()
+
     def rebuild(self):
         """The picture with the places of unlocked holes cut out."""
         board = self.picture.copy()

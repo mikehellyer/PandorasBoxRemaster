@@ -89,6 +89,15 @@ class JessesStrips(PuzzleGame):
         self.hint_mode = False
         self.check()
 
+    def save_state(self):
+        return {"tray": self.tray, "pieces": [[p.tray, list(p.cell), p.turns] for p in self.pieces]}
+
+    def load_state(self, state):
+        for p, (tray, cell, turns) in zip(self.pieces, state["pieces"]):
+            p.tray, p.cell, p.turns = tray, tuple(cell), turns
+        self.tray = state.get("tray", self.tray)
+        self.check()
+
     def check(self):
         self.solved = all(p.placed for p in self.pieces)
 

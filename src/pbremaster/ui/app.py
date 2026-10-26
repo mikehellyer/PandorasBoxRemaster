@@ -178,13 +178,21 @@ class App:
 
     def back(self):
         if len(self.stack) > 1:
+            self.keep_puzzles(self.stack[-1:])
             self.stack.pop()
             self.enter(self.view)
 
     def main_screen(self):
         self.dialogs.clear()
+        self.keep_puzzles(self.stack[1:])
         self.stack = self.stack[:1]
         self.enter(self.view)
+
+    def keep_puzzles(self, views):
+        """Remember any unsolved puzzle among views that are being left (ours: the original starts over)."""
+        for view in views:
+            if isinstance(view.scene, campaign.PuzzleScene):
+                view.scene.keep()
 
     def enter(self, view):
         if view.scene:
@@ -247,6 +255,8 @@ class App:
             self.sounds.play(Sounds.NO_CLICK)
             return
         loaded = saves.load_game(view.saves[lst.selected][1], self.player.name)
+        self.keep_puzzles(self.stack)                 # into the player being replaced
+        self.save_player()
         self.player = loaded
         self.save_player()
         self.dialogs.clear()
@@ -478,6 +488,7 @@ class App:
 
     def puzzle_solved(self, scene, used_free=False):
         p = self.player
+        p.partial.pop(scene.puzzle.path, None)
         self.dialogs.clear()
         if scene.only:
             events = ["only"]                       # Puzzles Only: just the success box
@@ -940,6 +951,7 @@ def main(argv=None):
             app.update(clock.get_time() / 1000)
             present(app.window, app.draw())
             clock.tick(60)
+        app.keep_puzzles(app.stack)
         app.save_player()
         display.remember_size()
         settings.save()

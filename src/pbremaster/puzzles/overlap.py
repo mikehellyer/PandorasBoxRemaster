@@ -88,6 +88,19 @@ class Overlap(PuzzleGame):
         self.hint_mode = False
         self.check()
 
+    def save_state(self):
+        return {"pieces": [[p.turns, p.placed, p.stack] for p in self.pieces],
+                "stacks": self.stacks, "top": self.top, "order": [self.pieces.index(p) for p in self.order]}
+
+    def load_state(self, state):
+        for p, (turns, placed, stack) in zip(self.pieces, state["pieces"]):
+            p.turns, p.placed, p.stack = turns, placed, stack
+        self.stacks = [list(s) for s in state["stacks"]]
+        self.top = list(state["top"])
+        self.order = [self.pieces[i] for i in state["order"]]
+        self.cache.clear()
+        self.check()
+
     def check(self):
         self.solved = all(p.placed for p in self.pieces)
 

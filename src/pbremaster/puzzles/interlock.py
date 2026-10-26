@@ -97,6 +97,15 @@ class Interlock(PuzzleGame):
         self.hint_mode = False
         self.check()
 
+    def save_state(self):
+        return {"pieces": [[p.at.type, p.at.flip, p.at.x, p.at.y, p.at.rotation, p.placed] for p in self.pieces]}
+
+    def load_state(self, state):
+        for p, (t, flip, x, y, rot, placed) in zip(self.pieces, state["pieces"]):
+            p.at = tri.Placement(t, flip, x, y, rot)
+            p.placed = placed
+        self.check()
+
     def check(self):
         self.solved = all(p.placed for p in self.pieces)
 

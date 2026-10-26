@@ -133,6 +133,13 @@ class Slices(PuzzleGame):
         self.hint_mode = False
         self.check()
 
+    def save_state(self):
+        return {"groups": [[g.members, g.flip, g.turn, [float(v) for v in g.origin]] for g in self.groups]}
+
+    def load_state(self, state):
+        self.groups = [Group(m, flip, turn, origin) for m, flip, turn, origin in state["groups"]]
+        self.check()
+
     def check(self):
         self.solved = len(self.groups) == 1
 

@@ -93,6 +93,15 @@ class LensBender(PuzzleGame):
     def check(self):
         self.solved = len(self.placed) == len(self.data.sprites)
 
+    def save_state(self):
+        return {"stacks": self.stacks, "placed": sorted(self.placed)}
+
+    def load_state(self, state):
+        self.stacks = [list(s) for s in state["stacks"]]
+        self.placed = set(state["placed"])
+        self.views.clear()
+        self.check()
+
     def facing(self, i, lens):
         return (self.data.sprites[i].angle + 60 * lens) % 360
 

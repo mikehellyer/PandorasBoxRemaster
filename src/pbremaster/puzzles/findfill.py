@@ -117,6 +117,18 @@ class FindAndFill(PuzzleGame):
     def check(self):
         self.solved = all(self.found)
 
+    def save_state(self):
+        return {"fill": [[int(r), int(v)] for r, v in self.fill.items()], "found": self.found,
+                "revealed": sorted(self.revealed)}
+
+    def load_state(self, state):
+        self.found = list(state["found"])
+        self.revealed = set(state["revealed"])
+        self.relock()
+        self.fill = {r: v for r, v in state["fill"] if r not in self.locked}
+        self.render_board()
+        self.check()
+
     def region_at(self, pos):
         if not VIEW.collidepoint(pos):
             return None
