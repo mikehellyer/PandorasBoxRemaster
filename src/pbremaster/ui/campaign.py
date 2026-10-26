@@ -480,7 +480,13 @@ class PuzzleScene(Scene):
             self.game.restart()
         self.app.sounds.play("RESTART")
 
+    def right_click(self, pos):
+        if self.game and not self.busy():
+            self.game.right_click(pos)
+
     def key(self, ev):
+        if self.game and not self.busy() and self.game.key(ev):
+            return True
         if ev.key == pygame.K_F9 and not (self.game and self.game.solved):
             if self.game:
                 self.game.complete()

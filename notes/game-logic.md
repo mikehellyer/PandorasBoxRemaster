@@ -130,3 +130,12 @@ original.
 ### Hints (all types)
 Hint arms a hint mode; the next click on a piece/hole places it (LANGENU 2052, 3318, 4313); clicking
 Hint again cancels without using it. Focus Point also uses this now.
+
+### Jesse's Strips ✅ (CJesseStripsObject, `src/pbremaster/puzzles/jesse.py`)
+Tutorial texts LANGENU 8007-8015, hint 8006, buttons "Grid" 8990 / "Rotate" 8991. Strips are 1 x n runs
+of picture cells; select (SHIFT adds), drag (snaps to cells), right-click or the Rotate button turns a
+quarter, tabs or keys 1-5 switch trays, holding a dragged strip over a tab moves it there.
+**Interpretation:** the board (picture area with its given cells) is drawn on every tray and each tray
+keeps its own loose strips; a strip sticks when dropped on its own place upright; trays get a light
+tint of their tab colour; tab hold 0.6 s; rotation is clockwise. No Grid toggle yet (no art for it).
+Tall pictures (12x18 cells) overhang the 16-row grid; the remaster clips the board to the grid.

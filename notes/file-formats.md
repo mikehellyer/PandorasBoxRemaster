@@ -87,7 +87,7 @@ Official names from LANGENU.DLL 150-161. "Help file" is the quick-help RTF named
 | Rotascope ✅ | RTT, RTS | `PUZZLE.RTT` | `'Zero'` record (the tutorial wraps it in 'MAP'), see below | rotascop.rtf | RTT/ |
 | Overlap | OVL, FSH | `PUZZLE.FSH` | `'SFHP'`, u32 3, ... ❓ | overlaps.rtf | OVER/ |
 | Outer Layer | SKN, SKI | `3DSKIN.SKI` (INI) + `3DSKIN_SPRn.PNG` + `CAMERAn/{BACK.JPG, ADD.PNG, MULT.PNG, WARPER.DAT, WARPER.MAP}` | pre-rendered 3D, warp maps ❓ | 3dskins.rtf | 3DSKIN/ |
-| Jesse's Strips | JES, JESS | `PUZZLE.JES` + photo .JPG | binary, u32 size, u32 2, ... ❓ | jesse.rtf | JES/ |
+| Jesse's Strips ✅ | JES, JESS | `PUZZLE.JES` + picture .JPG | see below | jesse.rtf | JES/ |
 | Slices | SLC, SLICE | `STATE.TXT` (text: per object `x y flip rot` + name), `OBJECT.WRL` (VRML 1.0), `nOBJ_m.PNG` + masks | 🟡 | 3dslices.rtf | SLICE/ |
 | Lens Bender | BGL | `PUZZLE.BGL` (INI `[BumpyGlass]`) + `PUZZLE_SPRn.PNG` + `TILE.PNG`; lens shapes in `BGL/<DIFF>_LENSn.RTRT/.RTRS` (precomputed ray-trace tables), layouts in `BGL/<DIFF>.INI` | 🟡 | bumpy.rtf | BGL/ |
 | Interlock | TRI, TAN | `PUZZLE.TRI` | `'trgm'` u32 1, ... (holds an author's D:\ path) ❓ | rigram.rtf | TRIGRAMS/ |
@@ -203,3 +203,17 @@ version 2: u32 0
 ```
 The JPG is the whole 650x540 play area (frame included); the mask image marks each hole's shape in its
 own colour on blue.
+
+## ✅ PUZZLE.JES (Jesse's Strips)
+
+`src/pbremaster/data/jes.py`; loader `0x4b6e30`.
+```
+u32 ?, u32 version, i32 cell (30/25/20), i32 ?, i32 ?, i32 ?, u32 tray cols, u32 tray rows, u32 strips, u32 ?, u8 ?
+"puzzle.jes"\0  picture\0
+5 x u32 tray counts, then each tray's strip numbers (strips in no tray start in place)
+strips x 57: start (x, y, dir), same again, solution (x, y, dir: 1 vertical, 2 horizontal), u8 ?,
+             u32 length, RECT in the picture (px)
+u32 n, n x (x, y): board cells shown from the start (marked at +0x26c)
+```
+Tray grids are 19x16 @30, 23x19 @25, 28x24 @20 (all ~570x480). The board offset (solution - rect/cell)
+is the same for every strip of a puzzle (checked on all 43).

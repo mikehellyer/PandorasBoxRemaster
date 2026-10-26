@@ -523,6 +523,9 @@ class App:
             view.mouse_move(pos)
             if scene:
                 scene.mouse_move(pos)
+        elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 3:
+            if scene and hasattr(scene, "right_click"):
+                scene.right_click(pos)
         elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
             if scene and scene.mouse_down(pos):
                 return

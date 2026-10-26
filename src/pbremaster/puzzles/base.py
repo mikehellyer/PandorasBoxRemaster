@@ -86,6 +86,12 @@ class PuzzleGame:
     def toggled(self, button):
         pass
 
+    def right_click(self, pos):
+        pass
+
+    def key(self, ev) -> bool:
+        return False
+
     def use_hint(self) -> bool:
         """Start hint mode (the player then clicks the piece to place, as in the
         original: LANGENU 2052/3318/4313); False if there is nothing to place."""
