@@ -286,7 +286,7 @@ class ScreenView:
 
     def button_at(self, pos):
         for w in reversed(self.buttons()):
-            if w.rect.collidepoint(pos):
+            if w.visible and w.rect.collidepoint(pos):
                 return w
         return None
 

@@ -867,23 +867,46 @@ def story_text_id(level_number, page):
 
 
 class StoryScene(Scene):
-    """Screen 250, the Story book (button 53): the level's trickster story, one page per
-    piece. Page 1 opens the level ("Find the piece of the box with the boat"); after the
-    Nth piece is found page N+1 tells the next part. Each page is read aloud
-    (PANDORA.MGD StoryVOColl: VO/SX_<trickster><page>.WAV). Buttons 252/253 turn the
-    pages, 251 closes. **Interpretation:** the text placed on the book's blank right page."""
-    PAGE = pygame.Rect(572, 62, 204, 470)
+    """Screen 250, the Story book (button 53): the trickster stories, one page per piece.
+    Page 1 opens a level ("Find the piece of the box with the boat"); after the Nth piece
+    is found page N+1 tells the next part. Each page is read aloud (PANDORA.MGD
+    StoryVOColl: VO/SX_<trickster><page>.WAV). Buttons 252/253 turn the pages (hidden when
+    there is no page that way), 251 closes. **Interpretation:** the text on the book's blank
+    right page; the pages being every page of the levels already finished plus the
+    unlocked pages of the current one."""
+    PAGE = pygame.Rect(594, 74, 184, 452)
     CORNERS = {-1: pygame.Rect(4, 540, 56, 52), 1: pygame.Rect(732, 540, 60, 52)}   # arrows painted on 250
 
     def __init__(self, app, view, level, page, then=None):
         super().__init__(app, view)
-        self.level, self.then = level, then
-        found = len(app.player.level_pieces(level.path)) if app.player else 0
-        self.pages = min(STORY_PAGES, found + 1)
-        self.page = max(1, min(page or self.pages, self.pages))
-        self.font = app.fonts.get(15)
-        self.bold = app.fonts.get(15, bold=True)
+        self.then = then
+        p = app.player
+        self.book = []                                   # (level, page) in reading order
+        for lv in sorted(app.levels.values(), key=lambda l: l.number):
+            if not 1 <= lv.number <= len(world.TRICKSTERS):
+                continue
+            if p and (lv.number < p.level or lv.number in p.captured):
+                self.book += [(lv, k) for k in range(1, STORY_PAGES + 1)]
+            elif lv.number == level.number:
+                found = len(p.level_pieces(lv.path)) if p else 0
+                self.book += [(lv, k) for k in range(1, min(STORY_PAGES, found + 1) + 1)]
+        mine = [i for i, (lv, _) in enumerate(self.book) if lv.number == level.number]
+        want = [i for i in mine if self.book[i][1] == page]
+        self.at = want[0] if want else (mine[-1] if mine else 0)
         self.layout()
+
+    @property
+    def level(self):
+        return self.book[self.at][0]
+
+    @property
+    def page(self):
+        return self.book[self.at][1]
+
+    @property
+    def pages(self):
+        """Pages of this level in the book."""
+        return sum(1 for lv, _ in self.book if lv is self.level)
 
     def enter(self):
         self.speak()
@@ -898,9 +921,22 @@ class StoryScene(Scene):
                 self.app.save_player()
 
     def layout(self):
-        """Lines of (bold, text) runs for the page; '%B' toggles bold, '\\r' breaks paragraphs."""
+        """Lines of (bold, text) runs for the page; '%B' toggles bold, '\\r' breaks paragraphs.
+        The font steps down until the page fits."""
         raw = self.app.strings.get(story_text_id(self.level.number, self.page), "")
-        self.lines, bold = [], False
+        for size in (16, 15, 14, 13):
+            self.font = self.app.fonts.get(size)
+            self.bold = self.app.fonts.get(size, bold=True)
+            self.line_h = size + 3
+            self.lines = self.wrap_page(raw)
+            if sum(self.line_h if l else self.line_h // 2 for l in self.lines) <= self.PAGE.h:
+                break
+        for cid, show in ((252, self.at > 0), (253, self.at < len(self.book) - 1)):
+            if cid in self.view.by_id:
+                self.view[cid].visible = show
+
+    def wrap_page(self, raw):
+        lines, bold = [], False
         for para in raw.replace("\r\n", "\r").split("\r"):
             words = []
             for k, chunk in enumerate(para.split("%B")):
@@ -909,22 +945,24 @@ class StoryScene(Scene):
                 words += [(bold, w) for w in chunk.split()]
             line, width = [], 0
             for b, w in words:
-                font = self.bold if b else self.font
-                ww = font.size(w + " ")[0]
+                ww = (self.bold if b else self.font).size(w + " ")[0]
                 if line and width + ww > self.PAGE.w:
-                    self.lines.append(line)
+                    lines.append(line)
                     line, width = [], 0
                 line.append((b, w))
                 width += ww
-            self.lines.append(line)
+            lines.append(line)
+        return lines
 
     def turn(self, step):
-        page = max(1, min(self.pages, self.page + step))
-        if page != self.page:
-            self.page = page
-            self.layout()
-            self.app.sounds.play(self.app.sounds.CLICK)
-            self.speak()
+        at = self.at + step
+        if not 0 <= at < len(self.book):
+            self.app.sounds.play(self.app.sounds.NO_CLICK)
+            return
+        self.at = at
+        self.layout()
+        self.app.sounds.play(self.app.sounds.CLICK)
+        self.speak()
 
     def close(self):
         self.app.music.stop()
@@ -969,8 +1007,9 @@ class StoryScene(Scene):
                 img = font.render(w, True, (120, 30, 10) if b else ink)
                 surf.blit(img, (x, y))
                 x += font.size(w + " ")[0]
-            y += 18 if line else 9
-        note = self.app.fonts.get(13).render(f"Page {self.page} of {self.pages}", True, (110, 80, 50))
+            y += self.line_h if line else self.line_h // 2
+        name = self.app.strings.get(430 + self.level.number - 1, world.TRICKSTERS[self.level.number - 1])
+        note = self.app.fonts.get(13).render(f"{name}: page {self.page} of {self.pages}", True, (110, 80, 50))
         surf.blit(note, note.get_rect(bottomright=(self.PAGE.right, self.PAGE.bottom + 6)))
 
 

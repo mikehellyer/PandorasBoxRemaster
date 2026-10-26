@@ -315,14 +315,15 @@ def test_story_book(app):
     app.player_ready()
     app.player.videos_seen.append(1)
     app.resume()
-    assert app.view.id == 250 and app.view.scene.pages == 1   # nothing found yet: one page
-    click(app, 253)                                   # next: no further page yet
-    assert app.view.scene.page == 1
+    book = app.view.scene
+    assert app.view.id == 250 and len(book.book) == 1        # nothing found yet: one page
+    assert not app.view[252].visible and not app.view[253].visible   # no page to turn to
     click(app, 251)
     app.player.pieces += [p.path for p in list(app.levels[1].cities.values())[:2]]
     click(app, 53)                                    # the Story button on the map
     book = app.view.scene
     assert app.view.id == 250 and book.pages == 3 and book.page == 3
+    assert app.view[252].visible and not app.view[253].visible
     click(app, 252)                                   # back a page
     assert book.page == 2 and "1.2" in app.player.stories_seen
     click_at(app, (760, 565))                         # the arrow painted in the corner: forward
@@ -330,6 +331,25 @@ def test_story_book(app):
     ev(app, pygame.KEYDOWN, key=pygame.K_ESCAPE, unicode="", mod=0)
     assert app.view.id == 400
 
+
+def test_story_book_keeps_finished_levels(app):
+    new_player(app)
+    app.player_ready()
+    app.player.level, app.player.captured = 2, [1]
+    app.player.videos_seen += [1, 2]
+    app.show_map()
+    click(app, 53)
+    book = app.view.scene
+    assert [(lv.number, k) for lv, k in book.book] == [(1, k) for k in range(1, 6)] + [(2, 1)]
+    assert book.level.number == 2 and book.page == 1      # opens on the current level's page
+    click(app, 252)                                   # back into Maui's story
+    assert book.level.number == 1 and book.page == 5 and "Maui" in book.app.strings.get(430)
+    for lv in range(1, 8):                            # every page fits the right page
+        for page in range(1, 6):
+            book.book = [(app.levels[lv], page)]
+            book.at = 0
+            book.layout()
+            assert sum(book.line_h if l else book.line_h // 2 for l in book.lines) <= book.PAGE.h
 
 def test_trickster_icons_on_the_map(app):
     new_player(app)

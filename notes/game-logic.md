@@ -282,8 +282,10 @@ level and names the first piece to find; page n+1 follows the nth piece found. S
 on 250.RIM (an open book) with buttons 252/253 (page back/on) and 251 (close); the Story button 53
 (53u/53d, top bar at 542,4) is added in code (the main menu setup at 0x41ab10 places it too). The book
 opens at the level's start (page 1) and after each found piece (the next page), then the piece message.
-**Interpretation:** the text on the blank right page, the painted corner arrows also turning pages,
-pages limited to those unlocked, and the book on the map and city screens (not the main menu).
+**Interpretation:** the text on the blank right page (594..778, font stepping down to fit), the painted
+corner arrows also turning pages, the book holding every page of the finished levels plus the unlocked
+pages of the current one (page arrows hidden when there is no page that way), and the book on the map
+and city screens (not the main menu). Hidden buttons no longer take clicks (ScreenView.button_at).
 The remaster used to play voice-over n after the nth piece, one page behind; fixed.
 
 ### Trickster portraits on the world map
