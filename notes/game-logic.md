@@ -254,3 +254,15 @@ tokens on a normal puzzle the remaster shows campaign.NO_TOKENS instead of only 
   the finished puzzle on screen until a click, key or Back; Continue (result 0) goes straight on. Either
   way the rewards and next steps follow. **Interpretation:** the "Click to continue" caption.
 
+### Tutorial instructions (ui/tutorial.py)
+The practice puzzles (LEVEL.0, via Tutorial) show the original's step texts, one LANGENU block per type
+(Image Hole 2053-2057, Focus Point 3313-3316, Rotascope 4308-4311, Overlap 5414-5419, Outer Layer
+6208-6212, Jesse's Strips 8007-8015, Slices 10900-10905, Lens Bender 11950-11954, Interlock 12900-12903,
+Find and Fill 13126-13130). The original draws them in a text bubble (0x46fe90 / 0x46ff10) and advances
+from inside each puzzle; here a step ends when the puzzle reports the action it asks for (puzzle sounds
+are events via PuzzleGame.emit, plus Outer Layer's view/place/stack/rotate and Jesse's move_tray), and
+Jesse's "press 4" steps wait for that tray. Image Hole's strike text 2057 shows after a strike.
+**Interpretation:** the triggers, and the panel at the bottom of the play area with back/next/close.
+Jesse's Strips opens on the last tray with strips (the tutorial's "then return to tray 5"; campaign
+puzzles leave tray 1 empty).
+

@@ -264,9 +264,11 @@ class OuterLayer(PuzzleGame):
             self.take(p)
             if self.put_on_object(p, point, grab):
                 self.app.sounds.play(self.app.sounds.CLICK)
+                self.emit("place")
         elif t is not None:
             self.take(p)
             self.stacks[t].insert(0, p)
+            self.emit("stack")
         elif p.pos is None and not any(p in s for s in self.stacks):
             self.stacks[0].insert(0, p)                # picked off the object, dropped nowhere
         return True
@@ -277,6 +279,7 @@ class OuterLayer(PuzzleGame):
         if p is not None and not p.placed and self.data.rotation:
             self.selected = p
             p.angle = (p.angle + 90) % 360
+            self.emit("rotate")
             if p.pos is not None:
                 self.dirty = True
                 p.placed = p.right
@@ -301,11 +304,13 @@ class OuterLayer(PuzzleGame):
             step = -1 if button is self.go_left else 1
             self.camera = (self.camera + step) % len(self.cameras)
             self.dirty = True
+            self.emit("view")
 
     def key(self, ev):
         if pygame.K_1 <= ev.key < pygame.K_1 + len(self.cameras):
             self.camera = ev.key - pygame.K_1
             self.dirty = True
+            self.emit("view")
             return True
         return False
 

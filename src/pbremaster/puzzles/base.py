@@ -43,6 +43,7 @@ class PuzzleGame:
         self.hint_mode = False     # Hint pressed: the next click picks the piece to place
         self.hint_done = False     # set when a hint has been used (the scene charges it)
         self.buttons: list[ToggleButton] = []
+        self.on_event = None       # set by the puzzle screen when a tutorial is running
 
     # helpers
     def raw(self, name):
@@ -59,6 +60,12 @@ class PuzzleGame:
 
     def sound(self, name):
         self.app.sounds.play(name, folder=self.SOUND_FOLDER)
+        self.emit(name)
+
+    def emit(self, event):
+        """Tell the tutorial what the player just did (sound names double as events)."""
+        if self.on_event:
+            self.on_event(event)
 
     # interface used by PuzzleScene
     def update(self, dt):

@@ -79,7 +79,9 @@ class JessesStrips(PuzzleGame):
             if p.placed:
                 p.cell, p.turns = s.home, 0
             self.pieces.append(p)
-        self.tray = next((t for t, ids in enumerate(self.data.trays) if ids), 0)
+        # Open on the last tray with strips: the tutorial says "...then return to tray 5", and
+        # every campaign puzzle leaves tray 1 empty for sorting.
+        self.tray = max((t for t, ids in enumerate(self.data.trays) if ids), default=0)
         self.selected: list[Piece] = []
         self.drag = None            # (grab cell offset per piece, mouse start cell)
         self.tab_hover = None
@@ -235,6 +237,8 @@ class JessesStrips(PuzzleGame):
         moving = self.selected if self.drag else []
         for q in moving:
             q.tray = k                    # dragged strips travel with the view
+        if moving:
+            self.emit("move_tray")
         if not self.drag:
             self.selected = []
         self.tray = k

@@ -368,6 +368,11 @@ class PuzzleScene(Scene):
         self.picture = None if self.game else self._picture()
         self.font = app.fonts.get(16)
         self.limit = puzzle.time_limit
+        self.tutorial = None
+        if self.game and level is not None and level.number == 0 and not only and not master:
+            from .tutorial import STEPS, Tutorial
+            if puzzle.kind_name in STEPS:
+                self.tutorial = Tutorial(app, puzzle.kind_name, self.game, self.AREA)
 
     def _picture(self):
         best = None
@@ -432,6 +437,8 @@ class PuzzleScene(Scene):
         if self.viewing:
             shadow_text(surf, self.app.fonts.get(16), "Click to continue",
                         (self.AREA.centerx, self.AREA.bottom - 26), centre=True)
+        elif self.tutorial:
+            self.tutorial.draw(surf)
 
     def end_viewing(self):
         go_on, self.viewing = self.viewing, None
@@ -449,6 +456,8 @@ class PuzzleScene(Scene):
     def mouse_down(self, pos):
         if self.viewing:
             self.end_viewing()
+            return True
+        if self.tutorial and not self.busy() and self.tutorial.click(pos):
             return True
         return bool(self.game and not self.busy() and self.game.mouse_down(pos))
 
