@@ -89,7 +89,7 @@ Official names from LANGENU.DLL 150-161. "Help file" is the quick-help RTF named
 | Outer Layer | SKN, SKI | `3DSKIN.SKI` (INI) + `3DSKIN_SPRn.PNG` + `CAMERAn/{BACK.JPG, ADD.PNG, MULT.PNG, WARPER.DAT, WARPER.MAP}` | pre-rendered 3D, warp maps ❓ | 3dskins.rtf | 3DSKIN/ |
 | Jesse's Strips ✅ | JES, JESS | `PUZZLE.JES` + picture .JPG | see below | jesse.rtf | JES/ |
 | Slices ✅ | SLC, SLICE | `STATE.TXT`, `OBJECT.WRL` (VRML 1.0), `<n>OBJ_<v>.PNG` + masks | see below | 3dslices.rtf | SLICE/ |
-| Lens Bender | BGL | `PUZZLE.BGL` (INI `[BumpyGlass]`) + `PUZZLE_SPRn.PNG` + `TILE.PNG`; lens shapes in `BGL/<DIFF>_LENSn.RTRT/.RTRS` (precomputed ray-trace tables), layouts in `BGL/<DIFF>.INI` | 🟡 | bumpy.rtf | BGL/ |
+| Lens Bender ✅ | BGL | `PUZZLE.BGL` (INI) + `PUZZLE_SPRn.PNG` + masks + `TILE.PNG/BMP`; lens tables `BGL/<SET>_LENSn.RTRT/.RTRS`, layout `BGL/<SET>.INI` | see below | bumpy.rtf | BGL/ |
 | Interlock ✅ | TRI, TAN | `PUZZLE.TRI` | see below | rigram.rtf | TRIGRAMS/ |
 | Find and Fill ✅ | FNF, F&F | `PUZZLE.FNF` + photo .JPG; left column `FNF/301.RIM` | see below | findfill.rtf | FNF/ |
 
@@ -293,4 +293,25 @@ view height 14 units per 480 px (`0x4c9778`: client height / 480 * 14), floor y 
 pieces this way rebuilds WOBJ's silhouette at 0.985-0.99 overlap in all 8 views (Eris puzzle 1).
 Every PNG has odd width and height (rendered round the centre). Boxes touching within 0.05 units link
 every puzzle's pieces into one connected graph.
+
+## ✅ PUZZLE.BGL and lens tables (Lens Bender)
+
+`src/pbremaster/data/bgl.py`; sprite loader `0x478af0`, layout loader near `0x47bbae`.
+```
+[BumpyGlass]    ObjectCount, Difficulty 0-3, SolutionWidth/Height, LensDepth, LensIndex,
+                AmbientK/DiffuseK/SpecularK/SpecularPower, FlashCount, Designer...
+[BumpySpriteN]  Visible, FinalXpos/FinalYpos, InitialStack (0-5 lens, 6 = middle),
+                InitialStackOrder (0 = top), FinalStack, Adjacency (letters = sprites),
+                Angle (multiple of 60), CentroidX/Y and CenterX/Y (optional, designer)
+PUZZLE_SPR<n-1>.PNG + ...A.PNG (mask, black = solid); TILE.PNG/BMP the lens background
+BGL/<SET>.INI   [BumpyGlassLayout] LensCount=7, Lens1..7PosX/Y (centres in the 650x540
+                area; 7 = middle), Button1..6PosX/Y (arrow centres; Button7 = 0,0)
+BGL/<SET>_LENSk.RTRT/.RTRS   u32 w, u32 h, 50 bytes (01 01, zeros, 4 float bounds),
+                i16 (src x, src y)[h][w] (-16383 = outside), u16 shade[h][w] (/65536)
+```
+Sets TUTOR, EASY, MEDIUM, HARD share sizes: lenses 0-5 are 175, 201, 75, 101, 125, 151 px, the
+middle 315 (RTRS samples a 540x540 canvas, RTRT ~600x600; TUTOR has no RTRS). Outer tables only
+magnify and bend (no turn). Angle + 60 * FinalStack = 0 (mod 360) for all 313 sprites; each puzzle
+starts with 1-5 sprites in the middle. Difficulty rises with the level (0: Level 0/Coyote/Monkey,
+1: Monkey, 2: Anansi, 3: Raven).
 

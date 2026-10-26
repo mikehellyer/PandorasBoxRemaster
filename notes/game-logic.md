@@ -185,3 +185,16 @@ whole table, ANIM spins the selected (or solved) group. Solved when one group ho
 **Interpretation:** the touching rule (the original may join any two pieces facing the same way),
 turning about the group's centre, groups standing on the floor by their lowest box, hint = bring one
 touching piece into the clicked piece's group, button positions, HI_SQUARE_1 under the selection.
+
+### Lens Bender ✅ (CBumpyGlassObject, `src/pbremaster/puzzles/lensbender.py`)
+Texts LANGENU 11950-11954 (tutorial), hint 11924, tooltip STATENU 11111 "Rotate piece. Or right-click
+to rotate." Each outer lens k holds a stack; its top piece shows through the lens table turned to
+Angle + 60k. Drag a top piece to another lens (top of that stack); a lens's arrow attaches its top
+piece to the middle when it faces 0 and touches (Adjacency) a piece already there (BG_RIGHT, else
+BG_WRONG / BG_NO). The tutorial (Level 0) plays out exactly under these rules: attach from the
+second-smallest lens, move the next piece to the smallest lens, one piece won't attach until its
+neighbour is in. Solved when every piece is in the middle.
+**Interpretation:** Rotate / right-click cycles the selected lens's stack (turning a piece freely
+would make the lenses pointless); Difficulty 0-3 -> TUTOR/EASY/MEDIUM/HARD tables; pieces are scaled
+to fit their lens (by their diagonal) and the solution to the middle's canvas; hint moves the clicked
+piece to the lens where it faces right; selection ring.
